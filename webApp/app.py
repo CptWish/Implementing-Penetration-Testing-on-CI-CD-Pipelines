@@ -8,6 +8,15 @@ app = Flask(__name__)
 def home():
     return "Welcome to the simple web app!"
 
+
+# Simulated purchase database
+fake_orders = {
+    "1001": {"item": "Laptop", "price": "$1200"},
+    "1002": {"item": "Smartphone", "price": "$800"},
+    "1003": {"item": "Headphones", "price": "$200"}
+}
+
+
 # Admin page (with intentionally hardcoded credentials)
 @app.route('/admin', methods=['GET', 'POST'])
 def admin():
@@ -43,11 +52,23 @@ def ping():
     os.system(f"ping -c 1 {host}")
     return f"Pinging {host}..."
 
-# Subtle Vulnerability: Information Disclosure without authorization
-@app.route('/api/secrets', methods=['GET'])
-def secrets():
-    # VULNERABILITY: No authentication or authorization check
-    return jsonify({"secret": "FLAG{this_should_not_be_public}"})
+# Complex Business Logic Vulnerability: Broken Access Control (IDOR)
+@app.route('/purchase', methods=['POST'])
+def purchase():
+    item_id = request.form.get('item_id')
+    if item_id in fake_orders:
+        return f"Purchase successful! Access your order at /order/{item_id}"
+    else:
+        return "Invalid item ID.", 404
+
+@app.route('/order/<order_id>', methods=['GET'])
+def view_order(order_id):
+    # VULNERABILITY: No proper access control check
+    order = fake_orders.get(order_id)
+    if order:
+        return jsonify(order)
+    else:
+        return "Order not found.", 404
 
 if __name__ == "__main__":
     app.run(host='0.0.0.0', port=5000)
