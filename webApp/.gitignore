@@ -1,0 +1,43 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Python virtual environment
+venv/
+env/
+ENV/
+.venv/
+.ENV/
+
+# Flask instance folder
+instance/
+.webassets-cache
+
+# Pytest cache
+.pytest_cache/
+
+# VS Code settings
+.vscode/
+
+# Environment variables file
+.env
+
+# Docker artifacts
+*.log
+*.pid
+*.gz
+*.swp
+*.swo
+docker-compose.override.yml
+
+# MacOS system files
+.DS_Store
+
+# IDE files (Pycharm, etc.)
+.idea/
+
+# Output folders
+dist/
+build/
+*.egg-info/
