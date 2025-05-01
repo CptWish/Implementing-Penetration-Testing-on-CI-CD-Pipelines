@@ -82,10 +82,20 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v3
 
-    - name: Start Docker container for app
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.10'
+
+    - name: Install Docker dependencies and build image
+      run: |
+        cd webApp
+        docker build -t flask-webapp .
+
+    - name: Run Flask app container locally
       run: |
         docker run -d -p 5000:5000 --name pentest-target flask-webapp
-        sleep 10
+        sleep 10  # give app time to start
 
     - name: Install Nuclei
       run: |
@@ -110,7 +120,7 @@ jobs:
         mkdir -p scan-reports
         zap-baseline.py -t http://localhost:5000 -r scan-reports/zap-report.html || true
 
-    - name: Parse ZAP results (fail on medium or high alerts)
+    - name: Parse ZAP report and fail if critical findings
       run: |
         if grep -iE 'Medium|High' scan-reports/zap-report.html; then
           echo "❌ OWASP ZAP found medium or high alerts!"
@@ -119,9 +129,8 @@ jobs:
           echo "✅ OWASP ZAP did not find critical issues."
         fi
 
-    - name: Stop and remove container
+    - name: Stop and clean up Docker container
       if: always()
       run: |
         docker stop pentest-target
         docker rm pentest-target
-
