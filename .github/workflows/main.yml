@@ -1,23 +1,18 @@
-name: CI/CD Pipeline
+name: CI/CD Pipeline with Testing and Scanning
 
 on:
   push:
-    branches:
-      - main
+    branches: [main]
   pull_request:
-    branches:
-      - main
+    branches: [main]
 
 jobs:
-  build-push-deploy:
+  build-test:
     runs-on: ubuntu-latest
 
     steps:
     - name: Checkout code
       uses: actions/checkout@v3
-
-    - name: Move into webApp folder
-      run: cd webApp
 
     - name: Set up Python
       uses: actions/setup-python@v4
@@ -30,12 +25,17 @@ jobs:
         python -m pip install --upgrade pip
         pip install -r requirements.txt
 
-    - name: Build Docker image locally
+    - name: Run unit tests (pytest)
+      run: |
+        cd webApp
+        pytest
+
+    - name: Build Docker image
       run: |
         cd webApp
         docker build -t flask-webapp .
 
-    - name: Tag Docker image with Docker Hub username
+    - name: Tag Docker image for Docker Hub
       run: |
         docker tag flask-webapp ${{ secrets.DOCKER_USERNAME }}/flask-webapp:latest
 
@@ -48,3 +48,39 @@ jobs:
     - name: Push Docker image to Docker Hub
       run: |
         docker push ${{ secrets.DOCKER_USERNAME }}/flask-webapp:latest
+
+  scan:
+    runs-on: ubuntu-latest
+    needs: build-test  
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.10'
+
+    - name: Install Semgrep and Bandit
+      run: |
+        pip install semgrep bandit
+
+    - name: Run Semgrep
+      run: |
+        semgrep --config p/default webApp || true
+
+    - name: Run Bandit (Python security linter)
+      run: |
+        bandit -r webApp -lll --exit-zero
+
+    - name: Set up SonarCloud
+      uses: SonarSource/sonarcloud-github-action@master
+      with:
+        organization: ${{ secrets.SONAR_ORG }}
+        token: ${{ secrets.SONAR_TOKEN }}
+
+    - name: Run SonarCloud Scan
+      uses: SonarSource/sonarcloud-github-action@master
+      with:
+        projectBaseDir: webApp
