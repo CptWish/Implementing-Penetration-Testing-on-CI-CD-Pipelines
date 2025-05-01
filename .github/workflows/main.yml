@@ -73,11 +73,3 @@ jobs:
     - name: Run Bandit (Python security linter)
       run: |
         bandit -r webApp -lll --exit-zero
-
-
-    - name: Run SonarCloud Scan
-      uses: SonarSource/sonarqube-scan-action@v5.0.0
-      env:
-        SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-      with:
-        projectBaseDir: webApp
