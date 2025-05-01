@@ -118,7 +118,7 @@ jobs:
 
     - name: Run OWASP ZAP Baseline Scan (Docker)
       run: |
-        docker run --network host -v $(pwd):/zap/wrk:rw -t owasp/zap2docker-stable zap-baseline.py \
+        docker run --network host -v $(pwd):/zap/wrk:rw -t owasp/zap2docker-stable zap-full-scan.py \
           -t http://localhost:5000 -r zap-report.html || true
 
     - name: Parse OWASP ZAP report and fail on Medium or High issues
@@ -129,7 +129,7 @@ jobs:
         else
           echo "✅ OWASP ZAP found no Medium or High vulnerabilities"
         fi
-        
+
     - name: Stop and clean up Docker container
       if: always()
       run: |
