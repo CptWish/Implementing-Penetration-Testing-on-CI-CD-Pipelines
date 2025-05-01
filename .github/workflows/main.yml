@@ -104,10 +104,11 @@ jobs:
         | cut -d '"' -f 4 \
         | wget -i - -O nuclei.zip
 
-        unzip nuclei.zip
+        unzip -o nuclei.zip
         chmod +x nuclei
         sudo mv nuclei /usr/local/bin/
         nuclei -version
+
 
 
     - name: Run Nuclei scan
