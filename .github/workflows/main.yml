@@ -116,25 +116,20 @@ jobs:
         mkdir -p scan-reports
         nuclei -u http://localhost:5000 -severity critical,high,medium -o scan-reports/nuclei.txt || true
 
-    - name: Install OWASP ZAP CLI
+    - name: Run OWASP ZAP Baseline Scan (Docker)
       run: |
-        sudo apt-get update
-        sudo apt-get install -y zaproxy
+        docker run --network host -v $(pwd):/zap/wrk:rw -t owasp/zap2docker-stable zap-baseline.py \
+          -t http://localhost:5000 -r zap-report.html || true
 
-    - name: Run OWASP ZAP baseline scan
+    - name: Parse OWASP ZAP report and fail on Medium or High issues
       run: |
-        mkdir -p scan-reports
-        zap-baseline.py -t http://localhost:5000 -r scan-reports/zap-report.html || true
-
-    - name: Parse ZAP report and fail if critical findings
-      run: |
-        if grep -iE 'Medium|High' scan-reports/zap-report.html; then
-          echo "❌ OWASP ZAP found medium or high alerts!"
+        if grep -iE 'Medium|High' zap-report.html; then
+          echo "❌ OWASP ZAP found Medium or High vulnerabilities"
           exit 1
         else
-          echo "✅ OWASP ZAP did not find critical issues."
+          echo "✅ OWASP ZAP found no Medium or High vulnerabilities"
         fi
-
+        
     - name: Stop and clean up Docker container
       if: always()
       run: |
