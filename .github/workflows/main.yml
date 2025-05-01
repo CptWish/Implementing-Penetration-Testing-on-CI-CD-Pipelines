@@ -116,18 +116,18 @@ jobs:
         mkdir -p scan-reports
         nuclei -u http://localhost:5000 -severity critical,high,medium -o scan-reports/nuclei.txt || true
 
-    - name: Run OWASP ZAP Baseline Scan (Docker)
+    - name: Run OWASP ZAP Full Scan (Docker)
       run: |
-        docker run --network host -v $(pwd):/zap/wrk:rw -t owasp/zap2docker-stable zap-full-scan.py \
-          -t http://localhost:5000 -r zap-report.html || true
+        docker run -v $(pwd):/zap/wrk/:rw -t owasp/zap2docker-stable zap-full-scan.py \
+          -t http://host.docker.internal:5000 -r zap-full-report.html || true
 
-    - name: Parse OWASP ZAP report and fail on Medium or High issues
+    - name: Parse OWASP ZAP Full Scan Report
       run: |
-        if grep -iE 'Medium|High' zap-report.html; then
-          echo "❌ OWASP ZAP found Medium or High vulnerabilities"
+        if grep -iE 'Medium|High' zap-full-report.html; then
+          echo "❌ ZAP Full Scan found Medium or High vulnerabilities"
           exit 1
         else
-          echo "✅ OWASP ZAP found no Medium or High vulnerabilities"
+          echo "✅ ZAP Full Scan found no Medium or High issues"
         fi
 
     - name: Stop and clean up Docker container
