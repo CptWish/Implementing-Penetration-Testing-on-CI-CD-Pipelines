@@ -99,17 +99,12 @@ jobs:
 
     - name: Install Nuclei (latest release)
       run: |
-        curl -s https://api.github.com/repos/projectdiscovery/nuclei/releases/latest \
-        | grep "browser_download_url.*linux_amd64.zip" \
-        | cut -d '"' -f 4 \
-        | wget -i - -O nuclei.zip
-
+        URL=$(curl -s https://api.github.com/repos/projectdiscovery/nuclei/releases/latest | grep "browser_download_url.*linux_amd64.zip" | cut -d '"' -f 4)
+        wget "$URL" -O nuclei.zip
         unzip -o nuclei.zip
         chmod +x nuclei
         sudo mv nuclei /usr/local/bin/
         nuclei -version
-
-
 
     - name: Run Nuclei scan
       run: |
