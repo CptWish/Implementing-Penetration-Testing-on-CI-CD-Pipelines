@@ -97,13 +97,18 @@ jobs:
         docker run -d -p 5000:5000 --name pentest-target flask-webapp
         sleep 10  # give app time to start
 
-    - name: Install Nuclei
+    - name: Install Nuclei (latest release)
       run: |
-        curl -sL https://github.com/projectdiscovery/nuclei/releases/latest/download/nuclei_2.9.5_linux_amd64.zip -o nuclei.zip
+        curl -s https://api.github.com/repos/projectdiscovery/nuclei/releases/latest \
+        | grep "browser_download_url.*linux_amd64.zip" \
+        | cut -d '"' -f 4 \
+        | wget -i - -O nuclei.zip
+
         unzip nuclei.zip
         chmod +x nuclei
         sudo mv nuclei /usr/local/bin/
         nuclei -version
+
 
     - name: Run Nuclei scan
       run: |
