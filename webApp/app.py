@@ -53,6 +53,12 @@ def admin():
 def api_data():
     return jsonify({"data": "This is some data!"})
 
+@app.route('/search')
+def search():
+    query = request.args.get('q', '')
+    # VULNERABILITY: Reflected XSS (CWE-79)
+    return f"<h1>Search results for: {query}</h1>"
+
 # Critical Vulnerability: Command Injection
 @app.route('/ping', methods=['GET'])
 def ping():
