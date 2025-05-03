@@ -104,11 +104,24 @@ jobs:
       run: |
         sudo apt-get update && sudo apt-get install -y ffuf
 
+    - name: Install SecLists
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y seclists
+        ls /usr/share/seclists/Discovery/Web-Content/ || echo "SecLists not found!"
+
     - name: Run directory fuzzing with ffuf
       run: |
         mkdir -p scan-reports
-        ffuf -u http://pentest-target:5000/FUZZ -w /usr/share/wordlists/dirb/common.txt \
-          -mc 200,302 -o scan-reports/ffuf.json -of json || true
+        ffuf -u http://pentest-target:5000/FUZZ \
+          -w /usr/share/seclists/Discovery/Web-Content/directories-small.txt \
+          -mc 200,302 \
+          -o scan-reports/ffuf.json -of json || true
+
+    - name: Show ffuf fuzzing results
+      run: |
+        echo "===== FFUF FUZZING RESULTS ====="
+        cat scan-reports/ffuf.json || echo "⚠️ No ffuf output found"
 
     - name: Print discovered paths
       run: cat scan-reports/ffuf.json
