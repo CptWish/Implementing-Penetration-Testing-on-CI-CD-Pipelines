@@ -139,8 +139,9 @@ jobs:
       run: |
         mkdir -p scan-reports
         docker run --rm --network zapnet -v ${{ github.workspace }}/scan-reports:/output projectdiscovery/nuclei:latest \
+          -l scan-reports/ffuf-urls.txt \
           -u http://pentest-target:5000 \
-          -severity critical,high,medium \
+          -severity critical,high,medium,low,info \
           -o /output/nuclei.txt || true
 
     - name: Show nuclei results
@@ -164,12 +165,12 @@ jobs:
           -v ${{ github.workspace }}/zap-reports:/zap/wrk \
           -t ghcr.io/zaproxy/zaproxy:stable zap-full-scan.py \
           -t http://pentest-target:5000 \
-          -r zap-full-report.html || true
+          -J zap-full-report.json-r zap-full-report.html || true
 
-    - name: Show ZAP Full Scan Report
+    - name: Print ZAP FULL SCAN Findings in CLI table
       run: |
-        echo "===== ZAP FULL SCAN REPORT ====="
-        cat zap-reports/zap-full-report.html || echo "Report not found"
+        echo "=== ZAP API FINDINGS ==="
+        jq -r '.site[0].alerts[] | [.riskdesc, .alert, .url] | @tsv' zap-reports/zap-full-report.json | column -t -s $'\t'
 
     # --- ZAP API SCAN ---
     - name: Run ZAP API Scan (Active + Passive)
@@ -181,17 +182,12 @@ jobs:
           -f openapi \
           -d \
           -a \
-          -r zap-api-report.html || true
+          -J zap-api-report.json -r zap-api-report.html || true
 
-    - name: Show ZAP API Scan Report
+    - name: Print ZAP API Findings in CLI table
       run: |
-        echo "===== ZAP API SCAN REPORT ====="
-        cat zap-reports/zap-api-report.html || echo "Report not found"
-
-        - name: Show ZAP report
-          run: |
-            echo "===== ZAP REPORT ====="
-            cat zap-reports/zap-fuzz-report.html || echo "Report not found"
+        echo "=== ZAP API FINDINGS ==="
+        jq -r '.site[0].alerts[] | [.riskdesc, .alert, .url] | @tsv' zap-reports/zap-api-report.json | column -t -s $'\t'
 
     - name: Stop and remove app container
       if: always()
