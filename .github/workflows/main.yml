@@ -108,7 +108,7 @@ jobs:
     - name: Install SecLists Wordlist
       run: |
         mkdir -p ${{ github.workspace }}/wordlists
-        curl -sSL https://raw.githubusercontent.com/danielmiessler/SecLists/master/Discovery/Web-Content/directories-small.txt -o ${{ github.workspace }}/wordlists/fuzzlist.txt
+        curl -sSL https://raw.githubusercontent.com/danielmiessler/SecLists/refs/heads/master/Discovery/Web-Content/directory-list-2.3-small.txt -o ${{ github.workspace }}/wordlists/fuzzlist.txt
 
     - name: Run directory fuzzing with ffuf (Docker)
       run: |
