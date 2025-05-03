@@ -130,6 +130,7 @@ jobs:
 
     - name: Extract paths from ffuf output for ZAP
       run: |
+        sudo chmod -R 777 scan-reports
         jq -r '.results[].input | "http://pentest-target:5000" + .FUZZ' scan-reports/ffuf.json > scan-reports/zap-urls.txt
         cat scan-reports/zap-urls.txt
 
