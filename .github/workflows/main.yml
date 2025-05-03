@@ -97,6 +97,14 @@ jobs:
         docker run -d -p 5000:5000 --name pentest-target flask-webapp
         sleep 10  # give app time to start
 
+    - name: Wait until Flask app responds
+      run: |
+        for i in {1..10}; do
+          curl -s http://localhost:5000 && break
+          echo "Waiting for app..."
+          sleep 3
+        done
+
     - name: Install Nuclei (latest release)
       run: |
         URL=$(curl -s https://api.github.com/repos/projectdiscovery/nuclei/releases/latest | grep "browser_download_url.*linux_amd64.zip" | cut -d '"' -f 4)
