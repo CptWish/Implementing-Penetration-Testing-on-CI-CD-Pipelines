@@ -98,83 +98,84 @@ jobs:
     - name: Run Flask app container locally
       run: |
         docker run --network zapnet -d --name pentest-target flask-webapp
+        sleep 10
 
     - name: Confirm pentest-target is responding
       run: |
-        curl -v http://pentest-target:5000 || (echo "App not reachable!" && exit 1)
+        docker run --rm --network zapnet curlimages/curl curl -s http://pentest-target:5000 || (echo "App not reachable!" && exit 1)
 
-    # - name: Install ffuf
-    #   run: |
-    #     sudo apt-get update && sudo apt-get install -y ffuf
+    - name: Install ffuf
+      run: |
+        sudo apt-get update && sudo apt-get install -y ffuf
 
-    # - name: Install SecLists Wordlist
-    #   run: |
-    #     mkdir -p wordlists
-    #     curl -sSL https://raw.githubusercontent.com/danielmiessler/SecLists/master/Discovery/Web-Content/directories-small.txt -o wordlists/fuzzlist.txt
+    - name: Install SecLists Wordlist
+      run: |
+        mkdir -p wordlists
+        curl -sSL https://raw.githubusercontent.com/danielmiessler/SecLists/master/Discovery/Web-Content/directories-small.txt -o wordlists/fuzzlist.txt
 
-    # - name: Run directory fuzzing with ffuf
-    #   run: |
-    #     mkdir -p scan-reports
-    #     ffuf -u http://pentest-target:5000/FUZZ \
-    #       -w wordlists/fuzzlist.txt \
-    #       -mc 200,302 \
-    #       -o scan-reports/ffuf.json -of json || true
+    - name: Run directory fuzzing with ffuf
+      run: |
+        mkdir -p scan-reports
+        ffuf -u http://localhost:5000/FUZZ \
+          -w wordlists/fuzzlist.txt \
+          -mc 200,302 \
+          -o scan-reports/ffuf.json -of json || true
 
-    # - name: Show ffuf fuzzing results
-    #   run: |
-    #     echo "===== FFUF FUZZING RESULTS ====="
-    #     cat scan-reports/ffuf.json || echo "⚠️ No ffuf output found"
+    - name: Show ffuf fuzzing results
+      run: |
+        echo "===== FFUF FUZZING RESULTS ====="
+        cat scan-reports/ffuf.json || echo "⚠️ No ffuf output found"
 
-    # - name: Print discovered paths
-    #   run: cat scan-reports/ffuf.json
+    - name: Print discovered paths
+      run: cat scan-reports/ffuf.json
 
-    # - name: Prepare URL list for OWASP ZAP
-    #   run: |
-    #     jq -r '.results[].input | "http://pentest-target:5000" + .FUZZ' scan-reports/ffuf.json > scan-reports/zap-urls.txt
-    #     cat scan-reports/zap-urls.txt
+    - name: Prepare URL list for OWASP ZAP
+      run: |
+        jq -r '.results[].input | "http://pentest-target:5000" + .FUZZ' scan-reports/ffuf.json > scan-reports/zap-urls.txt
+        cat scan-reports/zap-urls.txt
 
-    # - name: Install Nuclei (latest release)
-    #   run: |
-    #     sudo apt-get update && sudo apt-get install -y jq
-    #     URL=$(curl -s https://api.github.com/repos/projectdiscovery/nuclei/releases/latest | jq -r '.assets[] | select(.name | test("linux_amd64.zip$")) | .browser_download_url')
-    #     wget "$URL" -O nuclei.zip
-    #     unzip -o nuclei.zip
-    #     chmod +x nuclei
-    #     sudo mv nuclei /usr/local/bin/
-    #     nuclei -version
+    - name: Install Nuclei (latest release)
+      run: |
+        sudo apt-get update && sudo apt-get install -y jq
+        URL=$(curl -s https://api.github.com/repos/projectdiscovery/nuclei/releases/latest | jq -r '.assets[] | select(.name | test("linux_amd64.zip$")) | .browser_download_url')
+        wget "$URL" -O nuclei.zip
+        unzip -o nuclei.zip
+        chmod +x nuclei
+        sudo mv nuclei /usr/local/bin/
+        nuclei -version
 
-    # - name: Run Nuclei scan
-    #   run: |
-    #     mkdir -p scan-reports
-    #     nuclei -u http://pentest-target:5000 -severity critical,high,medium -o scan-reports/nuclei.txt || true
+    - name: Run Nuclei scan
+      run: |
+        mkdir -p scan-reports
+        nuclei -u http://localhost:5000 -severity critical,high,medium -o scan-reports/nuclei.txt || true
 
-    # - name: Pull OWASP ZAP Docker image
-    #   run: docker pull ghcr.io/zaproxy/zaproxy:stable
+    - name: Pull OWASP ZAP Docker image
+      run: docker pull ghcr.io/zaproxy/zaproxy:stable
 
-    # - name: Prepare ZAP report directory
-    #   run: |
-    #     mkdir -p zap-reports
-    #     chmod 777 zap-reports
+    - name: Prepare ZAP report directory
+      run: |
+        mkdir -p zap-reports
+        chmod 777 zap-reports
 
-    # - name: Run OWASP ZAP with custom URLs (Active Scan)
-    #   run: |
-    #     docker run --network zapnet \
-    #       -v $(pwd)/zap-reports:/zap/wrk/:rw \
-    #       -v $(pwd)/scan-reports/zap-urls.txt:/zap/wrk/urls.txt \
-    #       ghcr.io/zaproxy/zaproxy:stable zap-baseline.py \
-    #       -r zap-fuzz-report.html -I -z "-config urls.file=/zap/wrk/urls.txt" || true
+    - name: Run OWASP ZAP with custom URLs (Active Scan)
+      run: |
+        docker run --network zapnet \
+          -v $(pwd)/zap-reports:/zap/wrk/:rw \
+          -v $(pwd)/scan-reports/zap-urls.txt:/zap/wrk/urls.txt \
+          ghcr.io/zaproxy/zaproxy:stable zap-baseline.py \
+          -r zap-fuzz-report.html -I -z "-config urls.file=/zap/wrk/urls.txt" || true
 
-    # - name: Show ZAP Fuzz Report
-    #   run: |
-    #     echo "===== ZAP FUZZ SCAN REPORT ====="
-    #     cat zap-reports/zap-fuzz-report.html || echo "Report not found"
+    - name: Show ZAP Fuzz Report
+      run: |
+        echo "===== ZAP FUZZ SCAN REPORT ====="
+        cat zap-reports/zap-fuzz-report.html || echo "Report not found"
 
-    # - name: Stop and clean up Docker container
-    #   if: always()
-    #   run: |
-    #     docker stop pentest-target
-    #     docker rm pentest-target
+    - name: Stop and clean up Docker container
+      if: always()
+      run: |
+        docker stop pentest-target
+        docker rm pentest-target
 
-    # - name: Remove Docker network
-    #   if: always()
-    #   run: docker network rm zapnet
+    - name: Remove Docker network
+      if: always()
+      run: docker network rm zapnet
