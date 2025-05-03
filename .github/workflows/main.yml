@@ -107,7 +107,7 @@ jobs:
     - name: Run directory fuzzing with ffuf
       run: |
         mkdir -p scan-reports
-        ffuf -u http://localhost:5000/FUZZ -w /usr/share/wordlists/dirb/common.txt \
+        ffuf -u http://pentest-target:5000/FUZZ -w /usr/share/wordlists/dirb/common.txt \
           -mc 200,302 -o scan-reports/ffuf.json -of json || true
 
     - name: Print discovered paths
