@@ -98,10 +98,11 @@ jobs:
     - name: Run Flask app container locally
       run: |
         docker run --network zapnet -d --name pentest-target flask-webapp
-        
+
     - name: Install Nuclei (latest release)
       run: |
-        URL=$(curl -s https://api.github.com/repos/projectdiscovery/nuclei/releases/latest | grep "browser_download_url.*linux_amd64.zip" | cut -d '"' -f 4)
+        sudo apt-get update && sudo apt-get install -y jq
+        URL=$(curl -s https://api.github.com/repos/projectdiscovery/nuclei/releases/latest | jq -r '.assets[] | select(.name | test("linux_amd64.zip$")) | .browser_download_url')
         wget "$URL" -O nuclei.zip
         unzip -o nuclei.zip
         chmod +x nuclei
