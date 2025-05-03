@@ -133,7 +133,7 @@ jobs:
         mkdir -p scan-reports
         nuclei -u http://pentest-target:5000 -severity critical,high,medium -o scan-reports/nuclei.txt || true
 
-     - name: Pull OWASP ZAP Docker image
+    - name: Pull OWASP ZAP Docker image
       run: docker pull ghcr.io/zaproxy/zaproxy:stable
 
     - name: Prepare ZAP report directory
