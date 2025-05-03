@@ -104,17 +104,16 @@ jobs:
       run: |
         sudo apt-get update && sudo apt-get install -y ffuf
 
-    - name: Install SecLists
+    - name: Install SecLists Wordlist
       run: |
-        sudo apt-get update
-        sudo apt-get install -y seclists
-        ls /usr/share/seclists/Discovery/Web-Content/ || echo "SecLists not found!"
+        mkdir -p wordlists
+        curl -sSL https://raw.githubusercontent.com/danielmiessler/SecLists/master/Discovery/Web-Content/directories-small.txt -o wordlists/fuzzlist.txt
 
     - name: Run directory fuzzing with ffuf
       run: |
         mkdir -p scan-reports
         ffuf -u http://pentest-target:5000/FUZZ \
-          -w /usr/share/seclists/Discovery/Web-Content/directories-small.txt \
+          -w wordlists/fuzzlist.txt \
           -mc 200,302 \
           -o scan-reports/ffuf.json -of json || true
 
