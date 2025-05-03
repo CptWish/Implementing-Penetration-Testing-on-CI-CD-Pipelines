@@ -112,17 +112,16 @@ jobs:
 
     - name: Run directory fuzzing with ffuf (Docker)
       run: |
-        mkdir -p scan-reports
         docker run --rm --network zapnet \
-          -v ${{ github.workspace }}/wordlists:/wordlists \
-          -v ${{ github.workspace }}/scan-reports:/ffuf/output \
-          secsi/ffuf \
-          -u http://pentest-target:5000/FUZZ \
-          -w /wordlists/fuzzlist.txt \
-          -mc 200,302 \
-          -o /ffuf/output/ffuf.json \
-          -of json \
-          -v || true
+        -v ${{ github.workspace }}/wordlists:/wordlists \
+        -v ${{ github.workspace }}/scan-reports:/ffuf/output \
+        secsi/ffuf \
+        -u http://pentest-target:5000/FUZZ \
+        -w /wordlists/fuzzlist.txt \
+        -mc 200,302 \
+        -s \
+        -o /ffuf/output/ffuf.json \
+        -of json || true
 
     - name: Show ffuf results
       run: |
@@ -157,18 +156,41 @@ jobs:
         chmod 777 zap-reports
 
     # ✅ Run ZAP with URLs discovered from ffuf
-    - name: Run ZAP scan (baseline)
+    # --- ZAP FULL SCAN ---
+    - name: Run ZAP Full Scan (Crawl + Attack)
       run: |
         docker run --rm --network zapnet \
           -v ${{ github.workspace }}/zap-reports:/zap/wrk \
-          -v ${{ github.workspace }}/scan-reports/zap-urls.txt:/zap/wrk/urls.txt \
-          ghcr.io/zaproxy/zaproxy:stable zap-baseline.py \
-          -r zap-fuzz-report.html -I -z "-config urls.file=/zap/wrk/urls.txt" || true
+          -t ghcr.io/zaproxy/zaproxy:stable zap-full-scan.py \
+          -t http://pentest-target:5000 \
+          -r zap-full-report.html || true
 
-    - name: Show ZAP report
+    - name: Show ZAP Full Scan Report
       run: |
-        echo "===== ZAP REPORT ====="
-        cat zap-reports/zap-fuzz-report.html || echo "Report not found"
+        echo "===== ZAP FULL SCAN REPORT ====="
+        cat zap-reports/zap-full-report.html || echo "Report not found"
+
+    # --- ZAP API SCAN ---
+    - name: Run ZAP API Scan (Active + Passive)
+      run: |
+        docker run --rm --network zapnet \
+          -v ${{ github.workspace }}/zap-reports:/zap/wrk \
+          -t ghcr.io/zaproxy/zaproxy:stable zap-api-scan.py \
+          -t http://pentest-target:5000/openapi.json \
+          -f openapi \
+          -d \
+          -a \
+          -r zap-api-report.html || true
+
+    - name: Show ZAP API Scan Report
+      run: |
+        echo "===== ZAP API SCAN REPORT ====="
+        cat zap-reports/zap-api-report.html || echo "Report not found"
+
+        - name: Show ZAP report
+          run: |
+            echo "===== ZAP REPORT ====="
+            cat zap-reports/zap-fuzz-report.html || echo "Report not found"
 
     - name: Stop and remove app container
       if: always()
