@@ -105,14 +105,18 @@ jobs:
         docker run --rm --network zapnet curlimages/curl curl -s http://pentest-target:5000 || (echo "App not reachable!" && exit 1)
 
     # ✅ Run ffuf inside Docker in zapnet
-    - name: Run ffuf fuzzing (in Docker)
+    - name: Run directory fuzzing with ffuf (Docker)
       run: |
         mkdir -p scan-reports
-        docker run --rm --network zapnet -v ${{ github.workspace }}/scan-reports:/output ffuf/ffuf \
+        docker run --rm --network zapnet \
+          -v $(pwd)/wordlists:/wordlists \
+          -v $(pwd)/scan-reports:/ffuf/output \
+          secsi/ffuf \
           -u http://pentest-target:5000/FUZZ \
-          -w /usr/share/seclists/Discovery/Web-Content/directories-small.txt \
+          -w /wordlists/fuzzlist.txt \
           -mc 200,302 \
-          -o /output/ffuf.json -of json || true
+          -o /ffuf/output/ffuf.json \
+          -of json || true
 
     - name: Show ffuf results
       run: |
