@@ -117,18 +117,22 @@ jobs:
 
     - name: Run OWASP ZAP Full Scan (Docker)
       run: |
+        mkdir -p zap-output
+        chmod 777 zap-output  # Ensure write permissions
+
         docker pull ghcr.io/zaproxy/zaproxy:stable
-        docker run -v $(pwd):/zap/wrk/:rw ghcr.io/zaproxy/zaproxy:stable zap-full-scan.py \
+        docker run -v $(pwd)/zap-output:/zap/wrk/:rw ghcr.io/zaproxy/zaproxy:stable zap-full-scan.py \
           -t http://host.docker.internal:5000 -r zap-full-report.html || true
+
 
     - name: Print ZAP scan results (summary)
       run: |
         echo "🔍 OWASP ZAP Report Findings:"
-        grep -iE 'Risk level:|Alert:' zap-full-report.html || echo "No alerts found"
+        grep -iE 'Risk level:|Alert:' zap-output/zap-full-report.html || echo "No alerts found"
 
     - name: Parse OWASP ZAP Full Scan Report
       run: |
-        if grep -iE 'Medium|High' zap-full-report.html; then
+        if grep -iE 'Medium|High' zap-output/zap-full-report.html; then
           echo "❌ ZAP Full Scan found Medium or High vulnerabilities"
           exit 1
         else
