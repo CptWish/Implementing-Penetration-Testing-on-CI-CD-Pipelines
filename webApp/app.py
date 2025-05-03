@@ -1,7 +1,18 @@
 from flask import Flask, request, jsonify
+from flask_restx import Api, Resource
 import os
 
 app = Flask(__name__)
+api = Api(app, version="1.0", title="Test API", description="A simple API")
+
+ns = api.namespace('api', description='App operations')
+
+@ns.route('/hello')
+class HelloResource(Resource):
+    def get(self):
+        """Returns a hello world message"""
+        return {"message": "Hello World!"}
+
 
 # Public homepage
 @app.route('/')
@@ -69,6 +80,10 @@ def view_order(order_id):
         return jsonify(order)
     else:
         return "Order not found.", 404
+
+@app.route('/openapi.json')
+def openapi_spec():
+    return api.__schema__
 
 if __name__ == "__main__":
     app.run(host='0.0.0.0', port=5000)
