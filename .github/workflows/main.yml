@@ -99,6 +99,25 @@ jobs:
       run: |
         docker run --network zapnet -d --name pentest-target flask-webapp
 
+
+    - name: Install ffuf
+      run: |
+        sudo apt-get update && sudo apt-get install -y ffuf
+
+    - name: Run directory fuzzing with ffuf
+      run: |
+        mkdir -p scan-reports
+        ffuf -u http://localhost:5000/FUZZ -w /usr/share/wordlists/dirb/common.txt \
+          -mc 200,302 -o scan-reports/ffuf.json -of json || true
+
+    - name: Print discovered paths
+      run: cat scan-reports/ffuf.json
+
+    - name: Prepare URL list for OWASP ZAP
+      run: |
+        jq -r '.results[].input | "http://pentest-target:5000" + .FUZZ' scan-reports/ffuf.json > scan-reports/zap-urls.txt
+        cat scan-reports/zap-urls.txt
+
     - name: Install Nuclei (latest release)
       run: |
         sudo apt-get update && sudo apt-get install -y jq
@@ -112,54 +131,35 @@ jobs:
     - name: Run Nuclei scan
       run: |
         mkdir -p scan-reports
-        nuclei -u http://localhost:5000 -severity critical,high,medium -o scan-reports/nuclei.txt || true
+        nuclei -u http://pentest-target:5000 -severity critical,high,medium -o scan-reports/nuclei.txt || true
 
-    - name: Pull OWASP ZAP Docker image explicitly
-      run: |
-        docker pull ghcr.io/zaproxy/zaproxy:stable
+     - name: Pull OWASP ZAP Docker image
+      run: docker pull ghcr.io/zaproxy/zaproxy:stable
 
     - name: Prepare ZAP report directory
       run: |
         mkdir -p zap-reports
         chmod 777 zap-reports
 
-    - name: Run OWASP ZAP API Scan (Active + Passive)
+    - name: Run OWASP ZAP with custom URLs (Active Scan)
       run: |
-        docker run --network zapnet -v $(pwd)/zap-reports:/zap/wrk/:rw -t ghcr.io/zaproxy/zaproxy:stable zap-api-scan.py \
-          -t http://pentest-target:5000/openapi.json \
-          -f openapi \
-          -d \
-          -a \
-          -r zap-api-report.html || true
+        docker run --network zapnet \
+          -v $(pwd)/zap-reports:/zap/wrk/:rw \
+          -v $(pwd)/scan-reports/zap-urls.txt:/zap/wrk/urls.txt \
+          ghcr.io/zaproxy/zaproxy:stable zap-baseline.py \
+          -r zap-fuzz-report.html -I -z "-config urls.file=/zap/wrk/urls.txt" || true
 
-    - name: Show ZAP API Scan Report
+    - name: Show ZAP Fuzz Report
       run: |
-        echo "===== ZAP API SCAN REPORT ====="
-        cat zap-api-report.html || echo "Report not found"
-
-    - name: Show ZAP API Scan Report
-      run: |
-        echo "===== ZAP API SCAN REPORT ====="
-        cat zap-api-report.html || echo "Report not found"
-
-    - name: Run OWASP ZAP Full Scan (Crawl + Attack)
-      run: |
-        docker run --network zapnet -v $(pwd)/zap-reports:/zap/wrk/:rw -t ghcr.io/zaproxy/zaproxy:stable zap-full-scan.py \
-          -t http://pentest-target:5000 \
-          -r zap-full-report.html || true
-
-    - name: Show ZAP Full Scan Report
-      run: |
-        echo "===== ZAP FULL SCAN REPORT ====="
-        cat zap-full-report.html || echo "Report not found"
-
+        echo "===== ZAP FUZZ SCAN REPORT ====="
+        cat zap-reports/zap-fuzz-report.html || echo "Report not found"
 
     - name: Stop and clean up Docker container
       if: always()
       run: |
         docker stop pentest-target
         docker rm pentest-target
-    
+
     - name: Remove Docker network
       if: always()
       run: docker network rm zapnet
