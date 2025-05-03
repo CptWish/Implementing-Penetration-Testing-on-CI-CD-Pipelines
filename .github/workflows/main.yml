@@ -92,16 +92,30 @@ jobs:
         cd webApp
         docker build -t flask-webapp .
 
+    - name: Create Docker network
+      run: docker network create zapnet
+
     - name: Run Flask app container locally
       run: |
-        docker run --network host -d --name pentest-target flask-webapp
+        docker run --network zapnet -d --name pentest-target flask-webapp
 
-    - name: Wait until Flask app responds
+    - name: Wait until Flask app responds with expected output
       run: |
-        for i in {1..10}; do
-          curl -s http://localhost:5000 && break
-          echo "Waiting for app..."
-          sleep 3
+        expected="Welcome to the simple web app!"
+        for i in {1..15}; do
+          echo "Attempt $i: trying to reach http://localhost:5000"
+          response=$(curl -s http://localhost:5000)
+          echo "Response: $response"
+          if [[ "$response" == *"$expected"* ]]; then
+            echo "✅ Flask app is responding as expected."
+            break
+          fi
+          echo "❌ Unexpected or no response. Retrying..."
+          sleep 5
+          if [ $i -eq 15 ]; then
+            echo "❌ Flask app did not respond correctly after 15 attempts."
+            exit 1
+          fi
         done
 
     - name: Install Nuclei (latest release)
@@ -129,8 +143,8 @@ jobs:
 
     - name: Run OWASP ZAP API Scan (Active + Passive)
       run: |
-        docker run -v $(pwd)/zap-reports:/zap/wrk/:rw -t ghcr.io/zaproxy/zaproxy:stable zap-api-scan.py \
-          -t http://host.docker.internal:5000/openapi.json \
+        docker run --network zapnet -v $(pwd)/zap-reports:/zap/wrk/:rw -t ghcr.io/zaproxy/zaproxy:stable zap-api-scan.py \
+          -t http://pentest-target:5000/openapi.json \
           -f openapi \
           -d \
           -a \
@@ -141,10 +155,15 @@ jobs:
         echo "===== ZAP API SCAN REPORT ====="
         cat zap-api-report.html || echo "Report not found"
 
+    - name: Show ZAP API Scan Report
+      run: |
+        echo "===== ZAP API SCAN REPORT ====="
+        cat zap-api-report.html || echo "Report not found"
+
     - name: Run OWASP ZAP Full Scan (Crawl + Attack)
       run: |
-        docker run -v $(pwd)/zap-reports:/zap/wrk/:rw -t ghcr.io/zaproxy/zaproxy:stable zap-full-scan.py \
-          -t http://host.docker.internal:5000 \
+        docker run --network zapnet -v $(pwd)/zap-reports:/zap/wrk/:rw -t ghcr.io/zaproxy/zaproxy:stable zap-full-scan.py \
+          -t http://pentest-target:5000 \
           -r zap-full-report.html || true
 
     - name: Show ZAP Full Scan Report
@@ -158,3 +177,7 @@ jobs:
       run: |
         docker stop pentest-target
         docker rm pentest-target
+    
+    - name: Remove Docker network
+      if: always()
+      run: docker network rm zapnet
