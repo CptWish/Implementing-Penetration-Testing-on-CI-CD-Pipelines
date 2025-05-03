@@ -105,12 +105,17 @@ jobs:
         docker run --rm --network zapnet curlimages/curl curl -s http://pentest-target:5000 || (echo "App not reachable!" && exit 1)
 
     # ✅ Run ffuf inside Docker in zapnet
+    - name: Install SecLists Wordlist
+      run: |
+        mkdir -p ${{ github.workspace }}/wordlists
+        curl -sSL https://raw.githubusercontent.com/danielmiessler/SecLists/master/Discovery/Web-Content/directories-small.txt -o ${{ github.workspace }}/wordlists/fuzzlist.txt
+
     - name: Run directory fuzzing with ffuf (Docker)
       run: |
         mkdir -p scan-reports
         docker run --rm --network zapnet \
-          -v $(pwd)/wordlists:/wordlists \
-          -v $(pwd)/scan-reports:/ffuf/output \
+          -v ${{ github.workspace }}/wordlists:/wordlists \
+          -v ${{ github.workspace }}/scan-reports:/ffuf/output \
           secsi/ffuf \
           -u http://pentest-target:5000/FUZZ \
           -w /wordlists/fuzzlist.txt \
