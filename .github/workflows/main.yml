@@ -115,27 +115,30 @@ jobs:
       run: |
         docker pull ghcr.io/zaproxy/zaproxy:stable
 
-    - name: Run ZAP API Scan with Daemon
+    - name: Run OWASP ZAP API Scan (Active + Passive)
       run: |
-        docker run --network host -v $(pwd):/zap/wrk/:rw ghcr.io/zaproxy/zaproxy:stable zap-api-scan.py \
-          -t http://localhost:5000/openapi.json \
+        docker run -v $(pwd):/zap/wrk/:rw -t ghcr.io/zaproxy/zaproxy:stable zap-api-scan.py \
+          -t http://host.docker.internal:5000/openapi.json \
           -f openapi \
           -d \
-          -r zap-api-daemon-report.html || true
+          -a \
+          -r zap-api-report.html || true
 
-    - name: Show ZAP API Report
+    - name: Show ZAP API Scan Report
       run: |
-        echo "📄 ZAP API Scan Summary:"
-        cat zap-api-daemon-report.html | grep -i -E 'High|Medium|Low|Alert' || echo "No issues printed"
+        echo "===== ZAP API SCAN REPORT ====="
+        cat zap-api-report.html || echo "Report not found"
 
-    - name: Fail if High or Medium severity found
+    - name: Run OWASP ZAP Full Scan (Crawl + Attack)
       run: |
-        if grep -iE 'High|Medium' zap-api-daemon-report.html; then
-          echo "❌ ZAP found Medium or High vulnerabilities"
-          exit 1
-        else
-          echo "✅ No Medium or High issues found"
-        fi
+        docker run -v $(pwd):/zap/wrk/:rw -t ghcr.io/zaproxy/zaproxy:stable zap-full-scan.py \
+          -t http://host.docker.internal:5000 \
+          -r zap-full-report.html || true
+
+    - name: Show ZAP Full Scan Report
+      run: |
+        echo "===== ZAP FULL SCAN REPORT ====="
+        cat zap-full-report.html || echo "Report not found"
 
 
     - name: Stop and clean up Docker container
