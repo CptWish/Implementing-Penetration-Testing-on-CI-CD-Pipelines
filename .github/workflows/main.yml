@@ -116,7 +116,7 @@ jobs:
     - name: Run directory fuzzing with ffuf
       run: |
         mkdir -p scan-reports
-        ffuf -u http://localhost:5000/FUZZ \
+        ffuf -u http://pentest-target:5000/FUZZ \
           -w wordlists/fuzzlist.txt \
           -mc 200,302 \
           -o scan-reports/ffuf.json -of json || true
@@ -147,7 +147,7 @@ jobs:
     - name: Run Nuclei scan
       run: |
         mkdir -p scan-reports
-        nuclei -u http://localhost:5000 -severity critical,high,medium -o scan-reports/nuclei.txt || true
+        nuclei -u http://pentest-target:5000 -severity critical,high,medium -o scan-reports/nuclei.txt || true
 
     - name: Pull OWASP ZAP Docker image
       run: docker pull ghcr.io/zaproxy/zaproxy:stable
