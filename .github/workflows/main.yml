@@ -94,8 +94,7 @@ jobs:
 
     - name: Run Flask app container locally
       run: |
-        docker run -d -p 5000:5000 --name pentest-target flask-webapp
-        sleep 10  # give app time to start
+        docker run --network host -d --name pentest-target flask-webapp
 
     - name: Wait until Flask app responds
       run: |
