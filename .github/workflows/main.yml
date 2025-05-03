@@ -121,7 +121,8 @@ jobs:
           -w /wordlists/fuzzlist.txt \
           -mc 200,302 \
           -o /ffuf/output/ffuf.json \
-          -of json || true
+          -of json 
+          -v || true
 
     - name: Show ffuf results
       run: |
