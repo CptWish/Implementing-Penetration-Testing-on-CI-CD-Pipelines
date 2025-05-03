@@ -115,28 +115,26 @@ jobs:
       run: |
         docker pull ghcr.io/zaproxy/zaproxy:stable
 
-    - name: Run OWASP ZAP Full Scan (Docker)
+    - name: Run ZAP API Scan with Daemon
       run: |
-        mkdir -p zap-output
-        chmod 777 zap-output  # Ensure write permissions
+        docker run --network host -v $(pwd):/zap/wrk/:rw ghcr.io/zaproxy/zaproxy:stable zap-api-scan.py \
+          -t http://localhost:5000/openapi.json \
+          -f openapi \
+          -d \
+          -r zap-api-daemon-report.html || true
 
-        docker pull ghcr.io/zaproxy/zaproxy:stable
-        docker run -v $(pwd)/zap-output:/zap/wrk/:rw ghcr.io/zaproxy/zaproxy:stable zap-full-scan.py \
-          -t http://host.docker.internal:5000 -r zap-full-report.html || true
-
-
-    - name: Print ZAP scan results (summary)
+    - name: Show ZAP API Report
       run: |
-        echo "🔍 OWASP ZAP Report Findings:"
-        grep -iE 'Risk level:|Alert:' zap-output/zap-full-report.html || echo "No alerts found"
+        echo "📄 ZAP API Scan Summary:"
+        cat zap-api-daemon-report.html | grep -i -E 'High|Medium|Low|Alert' || echo "No issues printed"
 
-    - name: Parse OWASP ZAP Full Scan Report
+    - name: Fail if High or Medium severity found
       run: |
-        if grep -iE 'Medium|High' zap-output/zap-full-report.html; then
-          echo "❌ ZAP Full Scan found Medium or High vulnerabilities"
+        if grep -iE 'High|Medium' zap-api-daemon-report.html; then
+          echo "❌ ZAP found Medium or High vulnerabilities"
           exit 1
         else
-          echo "✅ ZAP Full Scan found no Medium or High issues"
+          echo "✅ No Medium or High issues found"
         fi
 
 
