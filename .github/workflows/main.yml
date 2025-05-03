@@ -146,9 +146,10 @@ jobs:
     - name: Run nuclei scan (in Docker)
       run: |
         mkdir -p scan-reports
-        docker run --rm --network zapnet -v ${{ github.workspace }}/scan-reports:/output projectdiscovery/nuclei:latest \
-          -l scan-reports/ffuf-urls.txt \
-          -u http://pentest-target:5000 \
+        docker run --rm --network zapnet \
+          -v ${{ github.workspace }}/scan-reports:/output \
+          projectdiscovery/nuclei:latest \
+          -l /output/ffuf-urls.txt \
           -severity critical,high,medium,low,info \
           -o /output/nuclei.txt || true
 
