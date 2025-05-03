@@ -165,7 +165,7 @@ jobs:
           -v ${{ github.workspace }}/zap-reports:/zap/wrk \
           -t ghcr.io/zaproxy/zaproxy:stable zap-full-scan.py \
           -t http://pentest-target:5000 \
-          -J zap-full-report.json-r zap-full-report.html || true
+          -J zap-full-report.json -r zap-full-report.html || true
 
     - name: Print ZAP FULL SCAN Findings in CLI table
       run: |
