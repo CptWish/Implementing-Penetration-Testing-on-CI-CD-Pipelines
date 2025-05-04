@@ -35,20 +35,6 @@ jobs:
         cd webApp
         docker build -t flask-webapp .
 
-    - name: Tag Docker image for Docker Hub
-      run: |
-        docker tag flask-webapp ${{ secrets.DOCKER_USERNAME }}/flask-webapp:latest
-
-    - name: Log in to Docker Hub
-      uses: docker/login-action@v2
-      with:
-        username: ${{ secrets.DOCKER_USERNAME }}
-        password: ${{ secrets.DOCKER_PASSWORD }}
-
-    - name: Push Docker image to Docker Hub
-      run: |
-        docker push ${{ secrets.DOCKER_USERNAME }}/flask-webapp:latest
-
   Static-Code-Analysis:
     runs-on: ubuntu-latest
     needs: build-test  
@@ -104,7 +90,6 @@ jobs:
       run: |
         docker run --rm --network zapnet curlimages/curl curl -s http://pentest-target:5000 || (echo "App not reachable!" && exit 1)
 
-    # ✅ Run ffuf inside Docker in zapnet
     - name: Install SecLists Wordlist
       run: |
         mkdir -p ${{ github.workspace }}/wordlists
@@ -123,51 +108,20 @@ jobs:
         -o /ffuf/output/ffuf.json \
         -of json || true
 
-    - name: Show ffuf results
-      run: |
-        echo "===== FFUF RESULTS ====="
-        cat scan-reports/ffuf.json || echo "⚠️ No ffuf output found"
-
-    - name: Extract paths from ffuf output for ZAP
+    - name: Extract paths from ffuf output
       run: |
         sudo chmod -R 777 scan-reports
-        jq -r '.results[].input | "http://pentest-target:5000" + .FUZZ' scan-reports/ffuf.json > scan-reports/zap-urls.txt
-        cat scan-reports/zap-urls.txt
-
-    # ✅ Run Nuclei in Docker in zapnet
-
-    - name: Prepare Nuclei targets from FFUF results
-      run: |
-        sudo chmod -R 777 scan-reports
-        jq -r '.results[].input | "http://pentest-target:5000" + .FUZZ' scan-reports/ffuf.json > scan-reports/ffuf-urls.txt
-        cat scan-reports/ffuf-urls.txt
-
+        jq -r '.results[].input | "http://pentest-target:5000" + .FUZZ' scan-reports/ffuf.json > scan-reports/urls.txt
 
     - name: Run nuclei scan (in Docker)
       run: |
-        mkdir -p scan-reports
         docker run --rm --network zapnet \
           -v ${{ github.workspace }}/scan-reports:/output \
           projectdiscovery/nuclei:latest \
-          -l /output/ffuf-urls.txt \
+          -l /output/urls.txt \
           -severity critical,high,medium,low,info \
           -o /output/nuclei.txt || true
 
-    - name: Show nuclei results
-      run: |
-        echo "===== NUCLEI RESULTS ====="
-        cat scan-reports/nuclei.txt || echo "⚠️ No nuclei output found"
-
-    - name: Pull OWASP ZAP Docker image
-      run: docker pull ghcr.io/zaproxy/zaproxy:stable
-
-    - name: Prepare ZAP report directory
-      run: |
-        mkdir -p zap-reports
-        chmod 777 zap-reports
-
-    # ✅ Run ZAP with URLs discovered from ffuf
-    # --- ZAP FULL SCAN ---
     - name: Run ZAP Full Scan (Crawl + Attack)
       run: |
         docker run --rm --network zapnet \
@@ -176,13 +130,7 @@ jobs:
           -t http://pentest-target:5000 \
           -J zap-full-report.json -r zap-full-report.html || true
 
-    - name: Print ZAP FULL SCAN Findings in CLI table
-      run: |
-        echo "=== ZAP API FINDINGS ==="
-        jq -r '.site[0].alerts[] | [.riskdesc, .alert, .url] | @tsv' zap-reports/zap-full-report.json | column -t -s $'\t'
-
-    # --- ZAP API SCAN ---
-    - name: Run ZAP API Scan (Active + Passive)
+    - name: Run ZAP API Scan
       run: |
         docker run --rm --network zapnet \
           -v ${{ github.workspace }}/zap-reports:/zap/wrk \
@@ -193,10 +141,20 @@ jobs:
           -a \
           -J zap-api-report.json -r zap-api-report.html || true
 
-    - name: Print ZAP API Findings in CLI table
+    - name: Evaluate scan results
       run: |
-        echo "=== ZAP API FINDINGS ==="
-        jq -r '.site[0].alerts[] | [.riskdesc, .alert, .url] | @tsv' zap-reports/zap-api-report.json | column -t -s $'\t'
+        echo "Evaluating vulnerabilities..."
+        ZAP_CRITICAL=$(jq '[.site[0].alerts[] | select(.riskdesc | contains("High"))] | length' zap-reports/zap-full-report.json)
+        NUCLEI_CRITICAL=$(grep -i "\[critical\]" scan-reports/nuclei.txt | wc -l)
+        echo "ZAP critical: $ZAP_CRITICAL"
+        echo "Nuclei critical: $NUCLEI_CRITICAL"
+
+        if [ "$ZAP_CRITICAL" -gt 0 ] || [ "$NUCLEI_CRITICAL" -gt 0 ]; then
+          echo "❌ Critical vulnerabilities found. Aborting push and deploy."
+          exit 1
+        else
+          echo "✅ No critical vulnerabilities. Safe to proceed."
+        fi
 
     - name: Stop and remove app container
       if: always()
@@ -207,3 +165,23 @@ jobs:
     - name: Remove Docker network
       if: always()
       run: docker network rm zapnet
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs: post-deployment-pentesting
+    if: success()
+
+    steps:
+    - name: Log in to Docker Hub
+      uses: docker/login-action@v2
+      with:
+        username: ${{ secrets.DOCKER_USERNAME }}
+        password: ${{ secrets.DOCKER_PASSWORD }}
+
+    - name: Push Docker image to Docker Hub
+      run: |
+        docker push ${{ secrets.DOCKER_USERNAME }}/flask-webapp:latest
+
+    - name: Deploy to Render
+      run: |
+        curl -X POST ${{ secrets.RENDER_DEPLOY_HOOK }}
