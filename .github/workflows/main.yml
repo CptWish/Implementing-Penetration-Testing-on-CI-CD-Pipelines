@@ -49,7 +49,7 @@ jobs:
       run: |
         docker push ${{ secrets.DOCKER_USERNAME }}/flask-webapp:latest
 
-  scan:
+  Static Code Analysis:
     runs-on: ubuntu-latest
     needs: build-test  
 
