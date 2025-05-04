@@ -30,10 +30,10 @@ jobs:
         cd webApp
         pytest
 
-    - name: Build Docker image
+    - name: Build and tag Docker image
       run: |
         cd webApp
-        docker build -t flask-webapp .
+        docker build -t ${{ secrets.DOCKER_USERNAME }}/flask-webapp:latest .
 
   Static-Code-Analysis:
     runs-on: ubuntu-latest
