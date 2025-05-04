@@ -149,17 +149,17 @@ jobs:
     - name: Evaluate scan results
       run: |
         echo "Evaluating vulnerabilities..."
-        ZAP_CRITICAL=$(jq '[.site[0].alerts[] | select(.riskdesc | contains("High"))] | length' zap-reports/zap-full-report.json)
-        NUCLEI_CRITICAL=$(grep -i "\[critical\]" scan-reports/nuclei.txt | wc -l)
-        echo "ZAP critical: $ZAP_CRITICAL"
-        echo "Nuclei critical: $NUCLEI_CRITICAL"
+         ZAP_CRIT=$(jq '[.site[0].alerts[] | select(.riskcode=="3")] | length' zap-reports/zap-api-report.json)
+        NUCLEI_CRIT=$(grep -ic 'critical' scan-reports/nuclei.txt || true)
 
-        if [ "$ZAP_CRITICAL" -gt 0 ] || [ "$NUCLEI_CRITICAL" -gt 0 ]; then
+        echo "ZAP critical: $ZAP_CRIT"
+        echo "Nuclei critical: $NUCLEI_CRIT"
+
+        if [ "$ZAP_CRIT" -gt 0 ] || [ "$NUCLEI_CRIT" -gt 0 ]; then
           echo "❌ Critical vulnerabilities found. Aborting push and deploy."
           exit 1
-        else
-          echo "✅ No critical vulnerabilities. Safe to proceed."
         fi
+        echo "✅ No critical vulnerabilities. Proceeding with deploy."
 
     - name: Stop and remove app container
       if: always()
