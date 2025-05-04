@@ -122,6 +122,11 @@ jobs:
           -severity critical,high,medium,low,info \
           -o /output/nuclei.txt || true
 
+    - name: Prepare ZAP report directory
+      run: |
+        mkdir -p zap-reports
+        sudo chmod -R 777 zap-reports
+
     - name: Run ZAP Full Scan (Crawl + Attack)
       run: |
         docker run --rm --network zapnet \
