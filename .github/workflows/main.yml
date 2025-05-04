@@ -149,7 +149,9 @@ jobs:
     - name: Evaluate scan results
       run: |
         echo "Evaluating vulnerabilities..."
-         ZAP_CRIT=$(jq '[.site[0].alerts[] | select(.riskcode=="3")] | length' zap-reports/zap-api-report.json)
+        ZAP_API_CRIT=$(jq '[.site[0].alerts[] | select(.riskcode=="3")] | length' zap-reports/zap-api-report.json)
+        ZAP_FULL_CRIT=$(jq '[.site[0].alerts[] | select(.riskcode=="3")] | length' zap-reports/zap-full-report.json)
+        ZAP_CRIT=$((ZAP_API_CRIT + ZAP_FULL_CRIT))
         NUCLEI_CRIT=$(grep -ic 'critical' scan-reports/nuclei.txt || true)
 
         echo "ZAP critical: $ZAP_CRIT"
