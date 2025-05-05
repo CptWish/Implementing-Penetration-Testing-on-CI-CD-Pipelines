@@ -163,22 +163,6 @@ jobs:
         fi
         echo "✅ No critical vulnerabilities. Proceeding with deploy."
 
-    - name: Stop and remove app container
-      if: always()
-      run: |
-        docker stop pentest-target
-        docker rm pentest-target
-
-    - name: Remove Docker network
-      if: always()
-      run: docker network rm zapnet
-
-  deploy:
-    runs-on: ubuntu-latest
-    needs: post-deployment-pentesting
-    if: success()
-
-    steps:
     - name: Log in to Docker Hub
       uses: docker/login-action@v2
       with:
@@ -192,3 +176,13 @@ jobs:
     - name: Deploy to Render
       run: |
         curl -X POST ${{ secrets.RENDER_DEPLOY_HOOK }}
+
+    - name: Stop and remove app container
+      if: always()
+      run: |
+        docker stop pentest-target
+        docker rm pentest-target
+
+    - name: Remove Docker network
+      if: always()
+      run: docker network rm zapnet
