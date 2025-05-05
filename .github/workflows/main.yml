@@ -76,7 +76,7 @@ jobs:
     - name: Install Docker dependencies and build image
       run: |
         cd webApp
-        docker build -t ${{ secrets.DOCKER_USERNAME }}/flask-webapp:latest .
+        docker build -t flask-webapp .
 
     - name: Create Docker network
       run: docker network create zapnet
