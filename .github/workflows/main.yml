@@ -172,14 +172,7 @@ jobs:
     - name: Remove Docker network
       if: always()
       run: docker network rm zapnet
-    
-    - name: Upload scan reports for evaluation
-      uses: actions/upload-artifact@f5da29a8f655b45a39e09f8eb0ac52d38986e02c
-      with:
-        name: scan-artifacts
-        path: |
-          zap-reports/
-          scan-reports/
+
 
 
   risk-evaluation:
@@ -187,13 +180,6 @@ jobs:
     needs: [Static-Code-Analysis, post-deployment-pentesting]
 
     steps:
-
-    - name: Download scan artifacts
-      uses: actions/download-artifact@v3
-      with:
-        name: scan-artifacts
-        path: .
-
     - name: Checkout code
       uses: actions/checkout@v3
 
