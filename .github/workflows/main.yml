@@ -174,7 +174,7 @@ jobs:
       run: docker network rm zapnet
     
     - name: Upload scan reports for evaluation
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@f5da29a8f655b45a39e09f8eb0ac52d38986e02c
       with:
         name: scan-artifacts
         path: |
@@ -193,7 +193,7 @@ jobs:
       with:
         name: scan-artifacts
         path: .
-        
+
     - name: Checkout code
       uses: actions/checkout@v3
 
