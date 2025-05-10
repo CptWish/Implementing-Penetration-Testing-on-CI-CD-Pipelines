@@ -189,6 +189,19 @@ jobs:
 
         echo "ZAP critical: $ZAP_CRIT"
         echo "Nuclei critical: $NUCLEI_CRIT"
+        echo ""
+        echo "🔎 ZAP Full Scan Critical Findings:"
+        jq -r '.site[0].alerts[] | select(.riskcode=="3") | "- \(.alert): \(.url)"' zap-reports/zap-full-report.json || echo "None"
+
+        echo ""
+        echo "🔎 ZAP API Scan Critical Findings:"
+        jq -r '.site[0].alerts[] | select(.riskcode=="3") | "- \(.alert): \(.url)"' zap-reports/zap-api-report.json || echo "None"
+
+        echo ""
+        echo "🔎 Nuclei Critical Findings:"
+        grep -i 'severity.*critical' scan-reports/nuclei.txt || echo "None"
+
+        echo ""
 
         if [ "$ZAP_CRIT" -gt 0 ] || [ "$NUCLEI_CRIT" -gt 0 ]; then
           echo "❌ Critical vulnerabilities found. Aborting push and deploy."
