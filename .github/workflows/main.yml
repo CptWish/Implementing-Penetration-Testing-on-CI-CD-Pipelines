@@ -115,12 +115,17 @@ jobs:
 
     - name: Run nuclei scan (in Docker)
       run: |
-        docker run --rm --network zapnet \
-          -v ${{ github.workspace }}/scan-reports:/output \
-          projectdiscovery/nuclei:latest \
-          -l /output/urls.txt \
-          -severity critical,high,medium,low,info \
-          -o /output/nuclei.txt || true
+        mkdir -p scan-reports/nuclei-individual
+        while IFS= read -r url; do
+          echo "🔍 Scanning $url with Nuclei..."
+          docker run --rm --network zapnet \
+            -v ${{ github.workspace }}/scan-reports:/output \
+            projectdiscovery/nuclei:latest \
+            -u "$url" \
+            -severity critical,high,medium,low,info \
+            -o "/output/nuclei-individual/$(echo $url | md5sum | cut -d' ' -f1).txt" || true
+        done < scan-reports/urls.txt
+
 
     - name: Prepare ZAP report directory
       run: |
@@ -129,11 +134,15 @@ jobs:
 
     - name: Run ZAP Full Scan (Crawl + Attack)
       run: |
-        docker run --rm --network zapnet \
-          -v ${{ github.workspace }}/zap-reports:/zap/wrk \
-          -t ghcr.io/zaproxy/zaproxy:stable zap-full-scan.py \
-          -t http://pentest-target:5000 \
-          -J zap-full-report.json -r zap-full-report.html || true
+        while IFS= read -r url; do
+          echo "🔍 Scanning $url with ZAP Full Scan..."
+          docker run --rm --network zapnet \
+            -v ${{ github.workspace }}/zap-reports:/zap/wrk \
+            -t ghcr.io/zaproxy/zaproxy:stable zap-full-scan.py \
+            -t "$url" \
+            -J "zap-full-report-$(echo $url | md5sum | cut -d' ' -f1).json" \
+            -r "zap-full-report-$(echo $url | md5sum | cut -d' ' -f1).html" || true
+        done < scan-reports/urls.txt
 
     - name: Run ZAP API Scan
       run: |
