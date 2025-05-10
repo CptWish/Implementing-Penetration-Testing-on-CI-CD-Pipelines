@@ -114,6 +114,7 @@ jobs:
         echo "http://pentest-target:5000/" > scan-reports/urls.txt
         jq -r '.results[].input | "http://pentest-target:5000/" + .FUZZ' scan-reports/ffuf.json \
           | grep -v '^#' > scan-reports/urls.txt
+        sed -i '/# /d' scan-reports/urls.txt
         cat scan-reports/urls.txt
 
     - name: Run nuclei scan (in Docker)
