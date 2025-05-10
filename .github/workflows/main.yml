@@ -129,6 +129,7 @@ jobs:
             projectdiscovery/nuclei:latest \
             -u "$url" \
             -severity critical,high,medium,low,info \
+            -c 100 \
             -o "/output/nuclei-individual/$(echo $url | md5sum | cut -d' ' -f1).txt" || true
         done < scan-reports/urls.txt
 
@@ -156,6 +157,7 @@ jobs:
             -J "$JSON_FILE" \
             -r "$HTML_FILE" || true
         done < scan-reports/urls.txt
+
     - name: Merge ZAP Full Scan reports
       run: |
         echo '{"site": []}' > zap-reports/zap-full-report.json
