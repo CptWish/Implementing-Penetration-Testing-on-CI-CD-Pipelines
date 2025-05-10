@@ -3,7 +3,7 @@ from flask_restx import Api, Resource
 import os
 
 app = Flask(__name__)
-api = Api(app, version="1.0", title="Test API", description="A simple API")
+api = Api(app, version="1.0", title="Test API", description="A simple API", doc='/docs')
 
 ns = api.namespace('api', description='App operations')
 
