@@ -121,8 +121,8 @@ jobs:
       run: |
         mkdir -p scan-reports/nuclei-individual
         while IFS= read -r url; do
-          echo ""
-          echo ""
+          echo " "
+          echo " "
           echo "🔍 Scanning $url with Nuclei..."
           docker run --rm --network zapnet \
             -v ${{ github.workspace }}/scan-reports:/output \
@@ -203,11 +203,88 @@ jobs:
 
         echo ""
 
-        if [ "$ZAP_CRIT" -gt 0 ] || [ "$NUCLEI_CRIT" -gt 0 ]; then
-          echo "❌ Critical vulnerabilities found. Aborting push and deploy."
+        # Define severity and confidence weights
+            get_weighted_score() {
+              local severity=$1
+              local confidence=$2
+
+              case $severity in
+                3) sev_weight=5;;  # Critical
+                2) sev_weight=3;;  # High
+                1) sev_weight=2;;  # Medium
+                0) sev_weight=1;;  # Low
+              esac
+
+              case $confidence in
+                "Confirmed") conf_weight=1.0;;
+                "High") conf_weight=0.8;;
+                "Medium") conf_weight=0.5;;
+                "Low") conf_weight=0.2;;
+                *) conf_weight=0.0;;
+              esac
+
+              echo "$sev_weight * $conf_weight" | bc
+            }
+
+            SCORE=0
+
+        # Process ZAP API report
+            for sev in 3 2 1 0; do
+              for conf in "Confirmed" "High" "Medium" "Low"; do
+                count=$(jq --arg sev "$sev" --arg conf "$conf" '[.site[0].alerts[] | select(.riskcode==$sev and .confidence==$conf)] | length' zap-reports/zap-api-report.json)
+                weight=$(get_weighted_score $sev $conf)
+                partial=$(echo "$count * $weight" | bc)
+                SCORE=$(echo "$SCORE + $partial" | bc)
+              done
+            done
+
+            # Process ZAP Full report
+            for sev in 3 2 1 0; do
+              for conf in "Confirmed" "High" "Medium" "Low"; do
+                count=$(jq --arg sev "$sev" --arg conf "$conf" '[.site[0].alerts[] | select(.riskcode==$sev and .confidence==$conf)] | length' zap-reports/zap-full-report.json)
+                weight=$(get_weighted_score $sev $conf)
+                partial=$(echo "$count * $weight" | bc)
+                SCORE=$(echo "$SCORE + $partial" | bc)
+              done
+            done
+
+            # Nuclei (assume all findings are confirmed)
+            for sev in critical high medium low; do
+              case $sev in
+                critical) sev_weight=5;;
+                high) sev_weight=3;;
+                medium) sev_weight=2;;
+                low) sev_weight=1;;
+              esac
+              count=$(grep -ic "severity.*$sev" scan-reports/nuclei.txt || echo 0)
+              partial=$(echo "$count * $sev_weight * 1.0" | bc)
+              SCORE=$(echo "$SCORE + $partial" | bc)
+            done
+
+            # Bandit and Semgrep (assume high confidence for simplicity)
+            BANDIT_HIGH=$(jq '[.results[] | select(.issue_severity=="HIGH")] | length' scan-reports/bandit.json || echo 0)
+            BANDIT_MEDIUM=$(jq '[.results[] | select(.issue_severity=="MEDIUM")] | length' scan-reports/bandit.json || echo 0)
+            BANDIT_LOW=$(jq '[.results[] | select(.issue_severity=="LOW")] | length' scan-reports/bandit.json || echo 0)
+
+            SEMGREP_HIGH=$(jq '[.results[] | select(.severity=="ERROR")] | length' scan-reports/semgrep.json || echo 0)
+            SEMGREP_MEDIUM=$(jq '[.results[] | select(.severity=="WARNING")] | length' scan-reports/semgrep.json || echo 0)
+            SEMGREP_LOW=$(jq '[.results[] | select(.severity=="INFO")] | length' scan-reports/semgrep.json || echo 0)
+
+            # Apply assumed high confidence
+            SCORE=$(echo "$SCORE + $BANDIT_HIGH * 3 + $BANDIT_MEDIUM * 2 + $BANDIT_LOW * 1" | bc)
+            SCORE=$(echo "$SCORE + $SEMGREP_HIGH * 3 + $SEMGREP_MEDIUM * 2 + $SEMGREP_LOW * 1" | bc)
+
+            echo "🔒 Weighted Risk Score (severity x confidence): $SCORE"
+
+
+        # Enforce threshold
+        MAX_SCORE=10
+        if (( $(echo "$SCORE > $MAX_SCORE" | bc -l) )); then
+          echo "❌ Deployment blocked: Risk score ($SCORE) exceeds acceptable threshold ($MAX_SCORE)."
           exit 1
         fi
-        echo "✅ No critical vulnerabilities. Proceeding with deploy."
+
+        echo "✅ All risk evaluations passed. Safe to deploy."
 
     - name: Stop and remove app container
       if: always()
