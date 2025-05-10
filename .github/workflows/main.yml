@@ -121,6 +121,8 @@ jobs:
       run: |
         mkdir -p scan-reports/nuclei-individual
         while IFS= read -r url; do
+          echo ""
+          echo ""
           echo "🔍 Scanning $url with Nuclei..."
           docker run --rm --network zapnet \
             -v ${{ github.workspace }}/scan-reports:/output \
@@ -153,7 +155,7 @@ jobs:
             -t "$url" \
             -J "$JSON_FILE" \
             -r "$HTML_FILE" || true
-
+        done < scan-reports/urls.txt
     - name: Merge ZAP Full Scan reports
       run: |
         echo '{"site": []}' > zap-reports/zap-full-report.json
