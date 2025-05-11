@@ -133,18 +133,6 @@ jobs:
         sort scan-reports/urls_unmodified.txt | uniq > scan-reports/urls.txt
         cat scan-reports/urls.txt
 
-    - name: Download Semgrep SCA artifacts
-      uses: actions/download-artifact@v4
-      with:
-        name: semgrep
-        path: scan-reports/semgrep.json
-
-    - name: Download Bandit SCA artifacts
-      uses: actions/download-artifact@v4
-      with:
-        name: bandit
-        path: scan-reports/bandit.json
-
     - name: Run nuclei scan (in Docker)
       run: |
         mkdir -p scan-reports/nuclei-individual
@@ -207,6 +195,24 @@ jobs:
           -a \
           -J zap-api-report.json -r zap-api-report.html || true
 
+    
+    - name: Download Semgrep SCA artifacts
+      uses: actions/download-artifact@v4
+      with:
+        name: semgrep
+        
+
+    - name: Download Bandit SCA artifacts
+      uses: actions/download-artifact@v4
+      with:
+        name: bandit
+        
+    - name: Move artifacts to scan-reports directory
+      run: |
+        mv semgrep.json scan-reports/
+        mv bandit.json scan-reports/
+    
+    
     - name: Evaluate scan results
       run: |
         echo "Evaluating vulnerabilities..."
