@@ -352,24 +352,9 @@ jobs:
         echo "✅ Risk evaluation passed. Safe to proceed."
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
   deploy-to-prod:
     runs-on: ubuntu-latest
-    needs: post-deployment-pentesting
+    needs: risk-evaluation
     if: success()
 
     steps:
