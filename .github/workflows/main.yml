@@ -205,13 +205,13 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: zap-full
-        path: scan-reports/zap-full-report.json
+        path: zap-reports/zap-full-report.json
 
     - name: Upload ZAP-api artifact
       uses: actions/upload-artifact@v4
       with:
         name: zap-api
-        path: scan-reports/zap-api-report.json
+        path: zap-reports/zap-api-report.json
 
     - name: Stop and remove app container
       if: always()
@@ -255,8 +255,9 @@ jobs:
         mkdir scan-reports
         mv semgrep.json scan-reports/
         mv bandit.json scan-reports/
-        mv zap-api-report.json scan-reports/
-        mv zap-full-report.json scan-reports/
+        mkdir zap-reports
+        mv zap-api-report.json zap-reports/
+        mv zap-full-report.json zap-reports/
 
 
     - name: Evaluate vulnerabilities (Threshold + Weighted)
