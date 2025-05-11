@@ -54,10 +54,12 @@ jobs:
 
     - name: Run Semgrep (JSON report)
       run: |
+        mkdir -p scan-reports
         semgrep --config p/default webApp --json > scan-reports/semgrep.json || true
 
     - name: Run Bandit (JSON report)
       run: |
+        mkdir -p scan-reports
         bandit -r webApp -f json -o scan-reports/bandit.json || true
 
   post-deployment-pentesting:
