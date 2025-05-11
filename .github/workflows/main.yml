@@ -63,7 +63,7 @@ jobs:
         bandit -r webApp -f json -o scan-reports/bandit.json || true
 
     - name: Upload results as artifacts
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: scan-reports
         path: scan-reports/
@@ -106,7 +106,7 @@ jobs:
         curl -sSL https://raw.githubusercontent.com/danielmiessler/SecLists/refs/heads/master/Discovery/Web-Content/directory-list-2.3-small.txt -o ${{ github.workspace }}/wordlists/fuzzlist.txt
 
     - name: Download scan reports from SCA
-      uses: actions/download-artifact@v3
+      uses: actions/download-artifact@v4
       with:
         name: scan-reports
         path: scan-reports/
