@@ -161,50 +161,33 @@ jobs:
         mkdir -p zap-reports
         sudo chmod -R 777 zap-reports
 
-    # - name: Run ZAP Full Scan (Crawl + Attack)
-    #   run: |
-    #     mkdir -p zap-reports/temp
-    #     echo '{"site":[]}' > zap-reports/zap-full-report.json
-
-    #     while IFS= read -r url; do
-    #       echo "🔍 Scanning $url with ZAP Full Scan..."
-    #       HASH=$(echo $url | md5sum | cut -d' ' -f1)
-    #       JSON_FILE="zap-full-report-$HASH.json"
-    #       HTML_FILE="zap-full-report-$HASH.html"
-
-    #       docker run --rm --network zapnet \
-    #         -v ${{ github.workspace }}/zap-reports:/zap/wrk \
-    #         -t ghcr.io/zaproxy/zaproxy:stable zap-full-scan.py \
-    #         -t "$url" \
-    #         -J "$JSON_FILE" \
-    #         -r "$HTML_FILE" || true
-    #     done < scan-reports/urls.txt
-    
     - name: Run ZAP Full Scan (Crawl + Attack)
       run: |
         mkdir -p zap-reports/temp
         echo '{"site":[]}' > zap-reports/zap-full-report.json
-        
-        HASH=$(echo $url | md5sum | cut -d' ' -f1)
-        JSON_FILE="zap-full-report-$HASH.json"
-        HTML_FILE="zap-full-report-$HASH.html"
 
-        docker run --rm --network zapnet \
-          -v ${{ github.workspace }}/zap-reports:/zap/wrk \
-          -t ghcr.io/zaproxy/zaproxy:stable zap-full-scan.py \
-          -t http://pentest-target:5000/ \
-          -J scan-reports/zap-full-report.json \
-          -r scan-reports/zap-full-report.html || true
+        while IFS= read -r url; do
+          echo "🔍 Scanning $url with ZAP Full Scan..."
+          HASH=$(echo $url | md5sum | cut -d' ' -f1)
+          JSON_FILE="zap-full-report-$HASH.json"
+          HTML_FILE="zap-full-report-$HASH.html"
 
-
-    # - name: Merge ZAP Full Scan reports
-    #   run: |
-    #     echo '{"site": []}' > zap-reports/zap-full-report.json
-    #     for f in zap-reports/zap-full-report-*.json; do
-    #       if [ -f "$f" ]; then
-    #         jq -s '.[0].site + .[1].site | {site: .}' "$f" zap-reports/zap-full-report.json > zap-reports/tmp.json && mv zap-reports/tmp.json zap-reports/zap-full-report.json
-    #       fi
-    #     done
+          docker run --rm --network zapnet \
+            -v ${{ github.workspace }}/zap-reports:/zap/wrk \
+            -t ghcr.io/zaproxy/zaproxy:stable zap-full-scan.py \
+            -t "$url" \
+            -J "$JSON_FILE" \
+            -r "$HTML_FILE" || true
+        done < scan-reports/urls.txt
+  
+    - name: Merge ZAP Full Scan reports
+      run: |
+        echo '{"site": []}' > zap-reports/zap-full-report.json
+        for f in zap-reports/zap-full-report-*.json; do
+          if [ -f "$f" ]; then
+            jq -s '.[0].site + .[1].site | {site: .}' "$f" zap-reports/zap-full-report.json > zap-reports/tmp.json && mv zap-reports/tmp.json zap-reports/zap-full-report.json
+          fi
+        done
 
 
     - name: Run ZAP API Scan
