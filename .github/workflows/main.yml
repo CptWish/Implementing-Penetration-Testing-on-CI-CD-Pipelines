@@ -57,16 +57,22 @@ jobs:
         mkdir -p scan-reports
         semgrep --config p/default webApp --json > scan-reports/semgrep.json || true
 
+    - name: Upload Semgrep results as artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: semgrep
+        path: semgrep.json
+
     - name: Run Bandit (JSON report)
       run: |
         mkdir -p scan-reports
         bandit -r webApp -f json -o scan-reports/bandit.json || true
 
-    - name: Upload results as artifacts
+    - name: Upload Bandit results as artifacts
       uses: actions/upload-artifact@v4
       with:
-        name: scan-reports
-        path: scan-reports/
+        name: bandit
+        path: bandit.json
   
   
   
@@ -104,12 +110,6 @@ jobs:
       run: |
         mkdir -p ${{ github.workspace }}/wordlists
         curl -sSL https://raw.githubusercontent.com/danielmiessler/SecLists/refs/heads/master/Discovery/Web-Content/directory-list-2.3-small.txt -o ${{ github.workspace }}/wordlists/fuzzlist.txt
-
-    - name: Download scan reports from SCA
-      uses: actions/download-artifact@v4
-      with:
-        name: scan-reports
-        path: scan-reports/
     
     - name: Run directory fuzzing with ffuf (Docker)
       run: |
@@ -132,6 +132,18 @@ jobs:
         sed -i '/#/d' scan-reports/urls_unmodified.txt
         sort scan-reports/urls_unmodified.txt | uniq > scan-reports/urls.txt
         cat scan-reports/urls.txt
+
+    - name: Download Semgrep SCA artifacts
+      uses: actions/download-artifact@v4
+      with:
+        name: semgrep
+        path: scan-reports/semgrep.json
+
+    - name: Download Bandit SCA artifacts
+      uses: actions/download-artifact@v4
+      with:
+        name: bandit
+        path: scan-reports/bandit.json
 
     - name: Run nuclei scan (in Docker)
       run: |
