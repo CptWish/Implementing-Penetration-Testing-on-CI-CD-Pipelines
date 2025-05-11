@@ -133,22 +133,28 @@ jobs:
         sort scan-reports/urls_unmodified.txt | uniq > scan-reports/urls.txt
         cat scan-reports/urls.txt
 
-    # - name: Run nuclei scan (in Docker)
-    #   run: |
-    #     mkdir -p scan-reports/nuclei-individual
-    #     while IFS= read -r url; do
-    #       echo " "
-    #       echo " "
-    #       echo "🔍 Scanning $url with Nuclei..."
-    #       docker run --rm --network zapnet \
-    #         -v ${{ github.workspace }}/scan-reports:/output \
-    #         projectdiscovery/nuclei:latest \
-    #         -u "$url" \
-    #         -severity critical,high,medium,low,info \
-    #         -c 100 \
-    #         -o "/output/nuclei-individual/$(echo $url | md5sum | cut -d' ' -f1).txt" || true
-    #     done < scan-reports/urls.txt
+    - name: Run nuclei scan (in Docker)
+      run: |
+        mkdir -p scan-reports/nuclei-individual
+        while IFS= read -r url; do
+          echo " "
+          echo " "
+          echo "🔍 Scanning $url with Nuclei..."
+          docker run --rm --network zapnet \
+            -v ${{ github.workspace }}/scan-reports:/output \
+            projectdiscovery/nuclei:latest \
+            -u "$url" \
+            -severity critical,high,medium,low,info \
+            -c 100 \
+            -o "/output/nuclei-individual/$(echo $url | md5sum | cut -d' ' -f1).txt" || true
+        done < scan-reports/urls.txt
 
+
+    - name: Merge Nuclei individual reports
+      run: |
+        mkdir -p scan-reports
+        echo "🔗 Merging Nuclei individual reports into scan-reports/nuclei.txt"
+        cat scan-reports/nuclei-individual/*.txt > scan-reports/nuclei.txt || echo "No individual reports found."    
 
     - name: Prepare ZAP report directory
       run: |
@@ -195,11 +201,11 @@ jobs:
           -a \
           -J zap-api-report.json -r zap-api-report.html || true
 
-    # - name: Upload nuclei artifact
-    #   uses: actions/upload-artifact@v4
-    #   with:
-    #     name: nuclei
-    #     path: scan-reports/zap-api-report.json
+    - name: Upload nuclei artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: nuclei
+        path: scan-reports/nuclei.txt
 
     - name: Upload ZAP-full artifact
       uses: actions/upload-artifact@v4
@@ -234,7 +240,6 @@ jobs:
       with:
         name: semgrep
         
-
     - name: Download Bandit SCA artifacts
       uses: actions/download-artifact@v4
       with:
@@ -249,6 +254,11 @@ jobs:
       uses: actions/download-artifact@v4
       with:
         name: zap-api
+
+    - name: Get Nuclei results from post-deployment-pentesting job
+      uses: actions/download-artifact@v4
+      with:
+        name: nuclei
 
     - name: Move artifacts to scan-reports directory
       run: |
