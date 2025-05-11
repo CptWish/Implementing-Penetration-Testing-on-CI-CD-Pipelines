@@ -265,9 +265,11 @@ jobs:
         mkdir scan-reports
         mv semgrep.json scan-reports/
         mv bandit.json scan-reports/
+        mv nuclei.txt scan-reports/
         mkdir zap-reports
         mv zap-api-report.json zap-reports/
         mv zap-full-report.json zap-reports/
+
 
 
     - name: Evaluate vulnerabilities (Threshold + Weighted)
