@@ -292,64 +292,68 @@ jobs:
         }
 
         echo "📊 Parsing ZAP Full Scan..."
-        while read -r alert; do
-          name=$(echo "$alert" | jq -r '.alert')
-          riskcode=$(echo "$alert" | jq -r '.riskcode')
-          confidence=$(echo "$alert" | jq -r '.confidence')
-          url=$(echo "$alert" | jq -r '.url')
-
-          echo "Alert: $name"
-          echo "Risk: $riskcode"
-          echo "Confidence: $confidence"
-          echo "URL: $url"
-
-          case "$riskcode" in
-            3) sev=5; ((CRITICAL++)) ;;
-            2) sev=3; ((HIGH++)) ;;
-            1) sev=2; ((MEDIUM++)) ;;
-            0) sev=1; ((LOW++)) ;;
-            *) sev=0; ;;
-          esac
-
-          coef=$(map_confidence "$confidence")
-          vuln_score=$(echo "$sev * $coef" | bc)
-          score=$(echo "$score + $vuln_score" | bc)
-
-          echo "- [ZAP Full] $name @ $url | severity=$sev confidence=$confidence -> $vuln_score"
-
-          echo "----------------------"
-        done < <(jq -c '.site[].alerts[]' zap-reports/zap-full-report.json)
+        jq -c '.site[].alerts[]' zap-reports/zap-full-report.json | {
+          while read -r alert; do
+            name=$(echo "$alert" | jq -r '.alert')
+            riskcode=$(echo "$alert" | jq -r '.riskcode')
+            confidence=$(echo "$alert" | jq -r '.confidence')
+            url=$(echo "$alert" | jq -r '.url')
+  
+            echo "Alert: $name"
+            echo "Risk: $riskcode"
+            echo "Confidence: $confidence"
+            echo "URL: $url"
+  
+            case "$riskcode" in
+              3) sev=5; ((CRITICAL++)) ;;
+              2) sev=3; ((HIGH++)) ;;
+              1) sev=2; ((MEDIUM++)) ;;
+              0) sev=1; ((LOW++)) ;;
+              *) sev=0; ;;
+            esac
+  
+            coef=$(map_confidence "$confidence")
+            vuln_score=$(echo "$sev * $coef" | bc)
+            score=$(echo "$score + $vuln_score" | bc)
+  
+            echo "- [ZAP Full] $name @ $url | severity=$sev confidence=$confidence -> $vuln_score"
+  
+            echo "----------------------"
+          done
+        } || true
 
 
         echo "📊 Parsing ZAP API Scan..."
-        while read -r alert; do
-          name=$(echo "$alert" | jq -r '.alert')
-          riskcode=$(echo "$alert" | jq -r '.riskcode')
-          confidence=$(echo "$alert" | jq -r '.confidence')
-          url=$(echo "$alert" | jq -r '.url')
-
-          echo "Alert: $name"
-          echo "Risk: $riskcode"
-          echo "Confidence: $confidence"
-          echo "URL: $url"
-
-          case "$riskcode" in
-            3) sev=5; ((CRITICAL++)) ;;
-            2) sev=3; ((HIGH++)) ;;
-            1) sev=2; ((MEDIUM++)) ;;
-            0) sev=1; ((LOW++)) ;;
-            *) sev=0; ;;
-          esac
-
-          coef=$(map_confidence "$confidence")
-          vuln_score=$(echo "$sev * $coef" | bc)
-          score=$(echo "$score + $vuln_score" | bc)
-
-          echo "- [ZAP API] $name @ $url | severity=$sev confidence=$confidence -> $vuln_score"
-          echo "$score"
-
-          echo "----------------------"
-        done < <(jq -c '.site[].alerts[]' zap-reports/zap-api-report.json)
+        jq -c '.site[].alerts[]' zap-reports/zap-api-report.json | {
+          while read -r alert; do
+            name=$(echo "$alert" | jq -r '.alert')
+            riskcode=$(echo "$alert" | jq -r '.riskcode')
+            confidence=$(echo "$alert" | jq -r '.confidence')
+            url=$(echo "$alert" | jq -r '.url')
+  
+            echo "Alert: $name"
+            echo "Risk: $riskcode"
+            echo "Confidence: $confidence"
+            echo "URL: $url"
+  
+            case "$riskcode" in
+              3) sev=5; ((CRITICAL++)) ;;
+              2) sev=3; ((HIGH++)) ;;
+              1) sev=2; ((MEDIUM++)) ;;
+              0) sev=1; ((LOW++)) ;;
+              *) sev=0; ;;
+            esac
+  
+            coef=$(map_confidence "$confidence")
+            vuln_score=$(echo "$sev * $coef" | bc)
+            score=$(echo "$score + $vuln_score" | bc)
+  
+            echo "- [ZAP API] $name @ $url | severity=$sev confidence=$confidence -> $vuln_score"
+            echo "$score"
+  
+            echo "----------------------"
+          done
+        } || true
 
         echo "📊 Including Nuclei (assumed confidence=1.0)"
         if [[ -f scan-reports/nuclei.txt ]]; then
