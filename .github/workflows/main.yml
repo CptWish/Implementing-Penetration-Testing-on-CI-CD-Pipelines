@@ -318,7 +318,7 @@ jobs:
           echo "- [ZAP Full] $name @ $url | severity=$sev confidence=$confidence -> $vuln_score"
 
           echo "----------------------"
-        done
+        done || true
 
 
         echo "📊 Parsing ZAP API Scan..."
@@ -348,7 +348,7 @@ jobs:
           echo "- [ZAP API] $name @ $url | severity=$sev confidence=$confidence -> $vuln_score"
 
           echo "----------------------"
-        done
+        done || true
 
         echo "📊 Including Nuclei (assumed confidence=1.0)"
         if [[ -f scan-reports/nuclei.txt ]]; then
