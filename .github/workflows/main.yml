@@ -273,6 +273,25 @@ jobs:
 
     - name: test
       run: |
+
+        score=0
+        CRITICAL=0
+        HIGH=0
+        MEDIUM=0
+        LOW=0
+
+        map_confidence() {
+
+          case "$1" in
+            "0") echo "0.0" ;;
+            "1") echo "0.5" ;;
+            "2") echo "0.8" ;;
+            "3") echo "1.0" ;;
+            *) echo "0.0" ;;
+          esac
+        }
+
+        echo "📊 Parsing ZAP Full Scan..."
         jq -c '.site[].alerts[]' zap-reports/zap-full-report.json | while read -r alert; do
           name=$(echo "$alert" | jq -r '.alert')
           riskcode=$(echo "$alert" | jq -r '.riskcode')
@@ -283,8 +302,54 @@ jobs:
           echo "Risk: $riskcode"
           echo "Confidence: $confidence"
           echo "URL: $url"
+
+          case "$risk" in
+            3) sev=5; ((CRITICAL++)) ;;
+            2) sev=3; ((HIGH++)) ;;
+            1) sev=2; ((MEDIUM++)) ;;
+            0) sev=1; ((LOW++)) ;;
+            *) sev=0; ;;
+          esac
+
+          coef=$(map_confidence "$confidence")
+          vuln_score=$(echo "$sev * $coef" | bc)
+          score=$(echo "$score + $vuln_score" | bc)
+
+          echo "- [ZAP Full] $name @ $url | severity=$sev confidence=$confidence -> $vuln_score"
+
           echo "----------------------"
         done
+
+
+        echo "📊 Parsing ZAP API Scan..."
+        jq -c '.site[].alerts[]' zap-reports/zap-api-report.json | while read -r alert; do
+          name=$(echo "$alert" | jq -r '.alert')
+          riskcode=$(echo "$alert" | jq -r '.riskcode')
+          confidence=$(echo "$alert" | jq -r '.confidence')
+          url=$(echo "$alert" | jq -r '.url')
+
+          echo "Alert: $name"
+          echo "Risk: $riskcode"
+          echo "Confidence: $confidence"
+          echo "URL: $url"
+
+          case "$risk" in
+            3) sev=5; ((CRITICAL++)) ;;
+            2) sev=3; ((HIGH++)) ;;
+            1) sev=2; ((MEDIUM++)) ;;
+            0) sev=1; ((LOW++)) ;;
+            *) sev=0; ;;
+          esac
+
+          coef=$(map_confidence "$confidence")
+          vuln_score=$(echo "$sev * $coef" | bc)
+          score=$(echo "$score + $vuln_score" | bc)
+
+          echo "- [ZAP API] $name @ $url | severity=$sev confidence=$confidence -> $vuln_score"
+
+          echo "----------------------"
+        done
+
     # - name: Evaluate vulnerabilities (Threshold + Weighted)
     #   run: |
     #     echo "🔍 Evaluating vulnerabilities using threshold and weighted models..."
