@@ -303,7 +303,7 @@ jobs:
           echo "Confidence: $confidence"
           echo "URL: $url"
 
-          case "$risk" in
+          case "$riskcode" in
             3) sev=5; ((CRITICAL++)) ;;
             2) sev=3; ((HIGH++)) ;;
             1) sev=2; ((MEDIUM++)) ;;
@@ -333,7 +333,7 @@ jobs:
           echo "Confidence: $confidence"
           echo "URL: $url"
 
-          case "$risk" in
+          case "$riskcode" in
             3) sev=5; ((CRITICAL++)) ;;
             2) sev=3; ((HIGH++)) ;;
             1) sev=2; ((MEDIUM++)) ;;
@@ -349,6 +349,49 @@ jobs:
 
           echo "----------------------"
         done
+
+        echo "📊 Including Nuclei (assumed confidence=1.0)"
+        if [[ -f scan-reports/nuclei.txt ]]; then
+          while IFS= read -r line; do
+            case "$line" in
+              *"severity: critical"*) sev=5; ((CRITICAL++)) ;;
+              *"severity: high"*) sev=3; ((HIGH++)) ;;
+              *"severity: medium"*) sev=2; ((MEDIUM++)) ;;
+              *"severity: low"*) sev=1; ((LOW++)) ;;
+              *) sev=0 ;;
+            esac
+            vuln_score=$sev
+            score=$(echo "$score + $vuln_score" | bc)
+            echo "- [Nuclei] $line -> $vuln_score"
+          done < scan-reports/nuclei.txt
+        fi
+
+        echo "📊 Bandit and Semgrep (assumed confidence=1.0)"
+        BANDIT_HIGH=$(jq '[.results[] | select(.issue_severity=="HIGH")] | length' scan-reports/bandit.json || echo 0)
+        BANDIT_MEDIUM=$(jq '[.results[] | select(.issue_severity=="MEDIUM")] | length' scan-reports/bandit.json || echo 0)
+        BANDIT_LOW=$(jq '[.results[] | select(.issue_severity=="LOW")] | length' scan-reports/bandit.json || echo 0)
+
+        SEMGREP_HIGH=$(jq '[.results[] | select(.severity=="ERROR")] | length' scan-reports/semgrep.json || echo 0)
+        SEMGREP_MEDIUM=$(jq '[.results[] | select(.severity=="WARNING")] | length' scan-reports/semgrep.json || echo 0)
+        SEMGREP_LOW=$(jq '[.results[] | select(.severity=="INFO")] | length' scan-reports/semgrep.json || echo 0)
+
+        for i in $(seq 1 $BANDIT_HIGH); do score=$(echo "$score + 3" | bc); ((HIGH++)); done
+        for i in $(seq 1 $BANDIT_MEDIUM); do score=$(echo "$score + 2" | bc); ((MEDIUM++)); done
+        for i in $(seq 1 $BANDIT_LOW); do score=$(echo "$score + 1" | bc); ((LOW++)); done
+
+        for i in $(seq 1 $SEMGREP_HIGH); do score=$(echo "$score + 3" | bc); ((HIGH++)); done
+        for i in $(seq 1 $SEMGREP_MEDIUM); do score=$(echo "$score + 2" | bc); ((MEDIUM++)); done
+        for i in $(seq 1 $SEMGREP_LOW); do score=$(echo "$score + 1" | bc); ((LOW++)); done
+
+        echo ""
+        echo "::notice:: Totals — Critical=$CRITICAL High=$HIGH Medium=$MEDIUM Low=$LOW Score=$score"
+
+        if (( $(echo "$score > 10" | bc -l) )); then
+          echo "❌ Deployment blocked: Weighted risk score $score exceeds threshold."
+          exit 1
+        fi
+
+        echo "✅ All risk checks passed. Total score: $score"
 
     # - name: Evaluate vulnerabilities (Threshold + Weighted)
     #   run: |
