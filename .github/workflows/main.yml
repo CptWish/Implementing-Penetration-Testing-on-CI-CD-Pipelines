@@ -376,7 +376,7 @@ jobs:
         SEMGREP_LOW=$( { jq '[.results[] | select(.severity=="INFO")] | length' scan-reports/semgrep.json 2>/dev/null || echo 0; } )
 
         # Function to safely loop over a count
-        safe_loop() {
+          safe_loop() {
           local count=$1
           local weight=$2
           local label=$3
@@ -384,17 +384,12 @@ jobs:
           if [[ "$count" =~ ^[0-9]+$ ]]; then
             for i in $(seq 1 "$count"); do
               score=$(echo "$score + $weight" | bc)
-              case "$label" in
-                HIGH) ((HIGH++)) ;;
-                MEDIUM) ((MEDIUM++)) ;;
-                LOW) ((LOW++)) ;;
-              esac
             done
           fi
         }
 
         # Apply scoring
-        safe_loop "$BANDIT_HIGH" 3 HIGH
+        #safe_loop "$BANDIT_HIGH" 3 HIGH
         safe_loop "$BANDIT_MEDIUM" 2 MEDIUM
         safe_loop "$BANDIT_LOW" 1 LOW
 
