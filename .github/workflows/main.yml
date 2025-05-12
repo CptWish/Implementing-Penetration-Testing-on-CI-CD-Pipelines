@@ -292,7 +292,7 @@ jobs:
         }
 
         echo "📊 Parsing ZAP Full Scan..."
-        jq -c '.site[].alerts[]' zap-reports/zap-full-report.json | while read -r alert; do
+        while read -r alert; do
           name=$(echo "$alert" | jq -r '.alert')
           riskcode=$(echo "$alert" | jq -r '.riskcode')
           confidence=$(echo "$alert" | jq -r '.confidence')
@@ -322,7 +322,7 @@ jobs:
 
 
         echo "📊 Parsing ZAP API Scan..."
-        jq -c '.site[].alerts[]' zap-reports/zap-api-report.json | while read -r alert; do
+        while read -r alert; do
           name=$(echo "$alert" | jq -r '.alert')
           riskcode=$(echo "$alert" | jq -r '.riskcode')
           confidence=$(echo "$alert" | jq -r '.confidence')
