@@ -327,10 +327,6 @@ jobs:
 
 
         echo "📊 Parsing ZAP API Scan..."
-        jq '[.site[].alerts[] 
-          | .instances[]? 
-          | {alert, riskcode, confidence, uri: .uri}] 
-          | unique_by(.alert, .uri)' zap-reports/zap-full-report.json
         jq -c '.site[].alerts[]' zap-reports/zap-api-report.json | {
           while read -r alert; do
             name=$(echo "$alert" | jq -r '.alert')
