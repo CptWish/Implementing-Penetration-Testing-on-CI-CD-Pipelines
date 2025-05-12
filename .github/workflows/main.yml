@@ -294,8 +294,7 @@ jobs:
         }
 
         echo "📊 Parsing ZAP Full Scan..."
-        cat zap-reports/zap-full-report.json
-        if [[ -f zap-reports/zap-full-report.json ]]; then
+        if jq -e '.site[0].alerts | type == "array" and length > 0' zap-reports/zap-full-report.json >/dev/null 2>&1; then
           jq -c '.site[0].alerts[]' zap-reports/zap-full-report.json 2>/dev/null | while read -r alert; do
             risk=$(echo "$alert" | jq -r '.riskcode')
             conf=$(echo "$alert" | jq -r '.confidence')
