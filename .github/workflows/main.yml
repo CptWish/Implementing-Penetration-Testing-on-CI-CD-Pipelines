@@ -318,7 +318,7 @@ jobs:
           echo "- [ZAP Full] $name @ $url | severity=$sev confidence=$confidence -> $vuln_score"
 
           echo "----------------------"
-        done || true
+        done < <(jq -c '.site[].alerts[]' zap-reports/zap-full-report.json)
 
 
         echo "📊 Parsing ZAP API Scan..."
@@ -349,7 +349,7 @@ jobs:
           echo "$score"
 
           echo "----------------------"
-        done || true
+        done < <(jq -c '.site[].alerts[]' zap-reports/zap-api-report.json)
 
         echo "📊 Including Nuclei (assumed confidence=1.0)"
         if [[ -f scan-reports/nuclei.txt ]]; then
@@ -377,7 +377,7 @@ jobs:
         SEMGREP_LOW=$( { jq '[.results[] | select(.severity=="INFO")] | length' scan-reports/semgrep.json 2>/dev/null || echo 0; } )
 
         # Function to safely loop over a count
-          safe_loop() {
+        safe_loop() {
           local count=$1
           local weight=$2
           local label=$3
@@ -390,7 +390,7 @@ jobs:
         }
 
         # Apply scoring
-        #safe_loop "$BANDIT_HIGH" 3 HIGH
+        safe_loop "$BANDIT_HIGH" 3 HIGH
         safe_loop "$BANDIT_MEDIUM" 2 MEDIUM
         safe_loop "$BANDIT_LOW" 1 LOW
 
