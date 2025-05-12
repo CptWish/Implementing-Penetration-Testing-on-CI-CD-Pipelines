@@ -367,21 +367,40 @@ jobs:
         fi
 
         echo "📊 Bandit and Semgrep (assumed confidence=1.0)"
-        BANDIT_HIGH=$(jq '[.results[] | select(.issue_severity=="HIGH")] | length' scan-reports/bandit.json || echo 0)
-        BANDIT_MEDIUM=$(jq '[.results[] | select(.issue_severity=="MEDIUM")] | length' scan-reports/bandit.json || echo 0)
-        BANDIT_LOW=$(jq '[.results[] | select(.issue_severity=="LOW")] | length' scan-reports/bandit.json || echo 0)
+        BANDIT_HIGH=$( { jq '[.results[] | select(.issue_severity=="HIGH")] | length' scan-reports/bandit.json 2>/dev/null || echo 0; } )
+        BANDIT_MEDIUM=$( { jq '[.results[] | select(.issue_severity=="MEDIUM")] | length' scan-reports/bandit.json 2>/dev/null || echo 0; } )
+        BANDIT_LOW=$( { jq '[.results[] | select(.issue_severity=="LOW")] | length' scan-reports/bandit.json 2>/dev/null || echo 0; } )
 
-        SEMGREP_HIGH=$(jq '[.results[] | select(.severity=="ERROR")] | length' scan-reports/semgrep.json || echo 0)
-        SEMGREP_MEDIUM=$(jq '[.results[] | select(.severity=="WARNING")] | length' scan-reports/semgrep.json || echo 0)
-        SEMGREP_LOW=$(jq '[.results[] | select(.severity=="INFO")] | length' scan-reports/semgrep.json || echo 0)
+        SEMGREP_HIGH=$( { jq '[.results[] | select(.severity=="ERROR")] | length' scan-reports/semgrep.json 2>/dev/null || echo 0; } )
+        SEMGREP_MEDIUM=$( { jq '[.results[] | select(.severity=="WARNING")] | length' scan-reports/semgrep.json 2>/dev/null || echo 0; } )
+        SEMGREP_LOW=$( { jq '[.results[] | select(.severity=="INFO")] | length' scan-reports/semgrep.json 2>/dev/null || echo 0; } )
 
-        for i in $(seq 1 $BANDIT_HIGH); do score=$(echo "$score + 3" | bc); ((HIGH++)); done
-        for i in $(seq 1 $BANDIT_MEDIUM); do score=$(echo "$score + 2" | bc); ((MEDIUM++)); done
-        for i in $(seq 1 $BANDIT_LOW); do score=$(echo "$score + 1" | bc); ((LOW++)); done
+        # Function to safely loop over a count
+        safe_loop() {
+          local count=$1
+          local weight=$2
+          local label=$3
 
-        for i in $(seq 1 $SEMGREP_HIGH); do score=$(echo "$score + 3" | bc); ((HIGH++)); done
-        for i in $(seq 1 $SEMGREP_MEDIUM); do score=$(echo "$score + 2" | bc); ((MEDIUM++)); done
-        for i in $(seq 1 $SEMGREP_LOW); do score=$(echo "$score + 1" | bc); ((LOW++)); done
+          if [[ "$count" =~ ^[0-9]+$ ]]; then
+            for i in $(seq 1 "$count"); do
+              score=$(echo "$score + $weight" | bc)
+              case "$label" in
+                HIGH) ((HIGH++)) ;;
+                MEDIUM) ((MEDIUM++)) ;;
+                LOW) ((LOW++)) ;;
+              esac
+            done
+          fi
+        }
+
+        # Apply scoring
+        safe_loop "$BANDIT_HIGH" 3 HIGH
+        safe_loop "$BANDIT_MEDIUM" 2 MEDIUM
+        safe_loop "$BANDIT_LOW" 1 LOW
+
+        safe_loop "$SEMGREP_HIGH" 3 HIGH
+        safe_loop "$SEMGREP_MEDIUM" 2 MEDIUM
+        safe_loop "$SEMGREP_LOW" 1 LOW
 
         echo ""
         echo "::notice:: Totals — Critical=$CRITICAL High=$HIGH Medium=$MEDIUM Low=$LOW Score=$score"
