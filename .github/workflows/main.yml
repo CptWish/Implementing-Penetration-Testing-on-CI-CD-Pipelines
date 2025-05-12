@@ -294,8 +294,9 @@ jobs:
         }
 
         echo "📊 Parsing ZAP Full Scan..."
+        cat zap-reports/zap-full-report.json
         if [[ -f zap-reports/zap-full-report.json ]]; then
-          jq -c '.site[0].alerts[]' zap-reports/zap-full-report.json | while read -r alert; do
+          jq -c '.site[0].alerts[]' zap-reports/zap-full-report.json 2>/dev/null | while read -r alert; do
             risk=$(echo "$alert" | jq -r '.riskcode')
             conf=$(echo "$alert" | jq -r '.confidence')
             url=$(echo "$alert" | jq -r '.url')
@@ -319,8 +320,9 @@ jobs:
         fi
 
         echo "📊 Parsing ZAP API Scan..."
+        cat zap-reports/zap-api-report.json
         if [[ -f zap-reports/zap-api-report.json ]]; then
-          jq -c '.site[0].alerts[]' zap-reports/zap-api-report.json | while read -r alert; do
+          jq -c '.site[0].alerts[]' zap-reports/zap-api-report.json 2>/dev/null | while read -r alert; do
             risk=$(echo "$alert" | jq -r '.riskcode')
             conf=$(echo "$alert" | jq -r '.confidence')
             url=$(echo "$alert" | jq -r '.url')
