@@ -346,6 +346,7 @@ jobs:
           score=$(echo "$score + $vuln_score" | bc)
 
           echo "- [ZAP API] $name @ $url | severity=$sev confidence=$confidence -> $vuln_score"
+          echo "$score"
 
           echo "----------------------"
         done || true
