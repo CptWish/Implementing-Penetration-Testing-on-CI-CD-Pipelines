@@ -269,6 +269,8 @@ jobs:
         mkdir zap-reports
         mv zap-api-report.json zap-reports/
         mv zap-full-report.json zap-reports/
+        touch scoreZapFull.txt
+        touch scoreZapAPI.txt
 
 
     - name: test
@@ -297,7 +299,7 @@ jobs:
             name=$(echo "$alert" | jq -r '.alert')
             riskcode=$(echo "$alert" | jq -r '.riskcode')
             confidence=$(echo "$alert" | jq -r '.confidence')
-            url=$(echo "$alert" | jq -r '.url')
+            url=$(echo "$alert" | jq -r '.instances[0].uri')
   
             echo "Alert: $name"
             echo "Risk: $riskcode"
@@ -320,7 +322,7 @@ jobs:
   
             echo "----------------------"
           done
-          echo "$score"
+          echo "$score" > scoreZapFull.txt
         } || true
 
 
@@ -330,7 +332,7 @@ jobs:
             name=$(echo "$alert" | jq -r '.alert')
             riskcode=$(echo "$alert" | jq -r '.riskcode')
             confidence=$(echo "$alert" | jq -r '.confidence')
-            url=$(echo "$alert" | jq -r '.url')
+            url=$(echo "$alert" | jq -r '.instances[0].uri')
   
             echo "Alert: $name"
             echo "Risk: $riskcode"
@@ -350,10 +352,9 @@ jobs:
             score=$(echo "$score + $vuln_score" | bc)
   
             echo "- [ZAP API] $name @ $url | severity=$sev confidence=$confidence -> $vuln_score"
-            echo "$score"
-  
             echo "----------------------"
           done
+          echo "$score" > scoreZapAPI.txt
         } || true
 
         echo "📊 Including Nuclei (assumed confidence=1.0)"
@@ -404,6 +405,10 @@ jobs:
         safe_loop "$SEMGREP_LOW" 1 LOW
 
         echo ""
+        scoreZapFull=$(cat scoreZapFull.txt)
+        score=$(echo "$score + $scoreZapFull" | bc)
+        scoreZapAPI=$(cat scoreZapAPI.txt)
+        score=$(echo "$score + $scoreZapAPI" | bc)
         echo "::notice:: Totals — Critical=$CRITICAL High=$HIGH Medium=$MEDIUM Low=$LOW Score=$score"
 
         if (( $(echo "$score > 10" | bc -l) )); then
