@@ -226,10 +226,10 @@ jobs:
           echo "🔍 Scanning $url with Nikto..."
           HASH=$(echo $url | md5sum | cut -d' ' -f1)
           docker run --rm --network zapnet \
-            -v ${{ github.workspace }}/scan-reports:/nikto/reports \
-            vulhub/nikto \
-            -host "$url" \
-            -output "/nikto/reports/nikto-individual/$HASH.txt" || true
+          -v ${{ github.workspace }}/scan-reports:/nikto/reports \
+          ghcr.io/sullo/nikto \
+          -host "$url" \
+          -output "/nikto/reports/nikto-individual/$HASH.txt" || true
         done < scan-reports/urls.txt
 
     - name: Merge Nikto individual reports
