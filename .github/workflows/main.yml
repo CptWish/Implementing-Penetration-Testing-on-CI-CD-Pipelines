@@ -219,6 +219,31 @@ jobs:
         name: zap-api
         path: zap-reports/zap-api-report.json
 
+    - name: Run Nikto scan
+      run: |
+        mkdir -p scan-reports/nikto-individual
+        while IFS= read -r url; do
+          echo "🔍 Scanning $url with Nikto..."
+          HASH=$(echo $url | md5sum | cut -d' ' -f1)
+          docker run --rm --network zapnet \
+            -v ${{ github.workspace }}/scan-reports:/nikto/reports \
+            sullo/nikto \
+            -h "$url" \
+            -output "/nikto/reports/nikto-individual/$HASH.txt" || true
+        done < scan-reports/urls.txt
+
+    - name: Merge Nikto individual reports
+      run: |
+        mkdir -p scan-reports
+        echo "🔗 Merging Nikto individual reports into scan-reports/nikto.txt"
+        cat scan-reports/nikto-individual/*.txt > scan-reports/nikto.txt || echo "No Nikto reports found."
+    
+    - name: Upload Nikto artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: nikto
+        path: scan-reports/nikto.txt
+
     - name: Stop and remove app container
       if: always()
       run: |
@@ -260,6 +285,11 @@ jobs:
       with:
         name: nuclei
 
+    - name: Get Nikto results
+      uses: actions/download-artifact@v4
+      with:
+        name: nikto
+
     - name: Move artifacts to scan-reports directory
       run: |
         mkdir scan-reports
@@ -269,6 +299,7 @@ jobs:
         mkdir zap-reports
         mv zap-api-report.json zap-reports/
         mv zap-full-report.json zap-reports/
+        mv nikto.txt scan-reports/
         touch scoreZapFull.txt
         touch scoreZapAPI.txt
 
@@ -372,6 +403,38 @@ jobs:
             score=$(echo "$score + $vuln_score" | bc)
             echo "- [Nuclei] $line -> $vuln_score"
           done < scan-reports/nuclei.txt
+        fi
+
+        
+        echo "📊 Parsing Nikto (weighted scoring by finding type)..."
+        if [[ -f scan-reports/nikto.txt ]]; then
+          while IFS= read -r line; do
+            score_delta=0
+            case "$line" in
+              *"OSVDB"* | *"CVE"* )
+                score_delta=4
+                ((CRITICAL++))
+                ;;
+              *"Server leaks"* | *"Internal IP"* )
+                score_delta=3
+                ((HIGH++))
+                ;;
+              *"Potentially dangerous"* | *"directory indexing"* )
+                score_delta=2
+                ((MEDIUM++))
+                ;;
+              *"Outdated"* | *"Deprecated"* )
+                score_delta=1
+                ((LOW++))
+                ;;
+              *)
+                score_delta=0
+                ;;
+            esac
+
+            score=$(echo "$score + $score_delta" | bc)
+            echo "- [Nikto] $line -> $score_delta"
+          done < scan-reports/nikto.txt
         fi
 
         echo "📊 Bandit and Semgrep (assumed confidence=1.0)"
