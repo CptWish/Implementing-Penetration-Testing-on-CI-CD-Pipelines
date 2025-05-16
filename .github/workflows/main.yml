@@ -219,6 +219,9 @@ jobs:
         name: zap-api
         path: zap-reports/zap-api-report.json
 
+    - name: Pre-pull Nikto Docker image
+      run: docker pull vulhub/nikto    
+    
     - name: Run Nikto scan
       run: |
         mkdir -p scan-reports/nikto-individual
@@ -227,8 +230,8 @@ jobs:
           HASH=$(echo $url | md5sum | cut -d' ' -f1)
           docker run --rm --network zapnet \
             -v ${{ github.workspace }}/scan-reports:/nikto/reports \
-            sullo/nikto \
-            -h "$url" \
+            vulhub/nikto \
+            -host "$url" \
             -output "/nikto/reports/nikto-individual/$HASH.txt" || true
         done < scan-reports/urls.txt
 
