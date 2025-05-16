@@ -217,10 +217,7 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: zap-api
-        path: zap-reports/zap-api-report.json
-
-    - name: Pre-pull Nikto Docker image
-      run: docker pull vulhub/nikto    
+        path: zap-reports/zap-api-report.json  
     
     - name: Run Nikto scan
       run: |
