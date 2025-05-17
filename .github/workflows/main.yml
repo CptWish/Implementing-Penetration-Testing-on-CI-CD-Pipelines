@@ -288,10 +288,10 @@ jobs:
       with:
         name: nuclei
 
-    # - name: Get Nikto results
-    #   uses: actions/download-artifact@v4
-    #   with:
-    #     name: nikto
+    - name: Get Nikto results
+      uses: actions/download-artifact@v4
+      with:
+        name: nikto
 
     - name: Move artifacts to scan-reports directory
       run: |
@@ -409,36 +409,37 @@ jobs:
         fi
 
         
-        # echo "📊 Parsing Nikto (weighted scoring by finding type)..."
-        # if [[ -f scan-reports/nikto.txt ]]; then
-        #   while IFS= read -r line; do
-        #     score_delta=0
-        #     case "$line" in
-        #       *"OSVDB"* | *"CVE"* )
-        #         score_delta=4
-        #         ((CRITICAL++))
-        #         ;;
-        #       *"Server leaks"* | *"Internal IP"* )
-        #         score_delta=3
-        #         ((HIGH++))
-        #         ;;
-        #       *"Potentially dangerous"* | *"directory indexing"* )
-        #         score_delta=2
-        #         ((MEDIUM++))
-        #         ;;
-        #       *"Outdated"* | *"Deprecated"* )
-        #         score_delta=1
-        #         ((LOW++))
-        #         ;;
-        #       *)
-        #         score_delta=0
-        #         ;;
-        #     esac
+        echo "📊 Parsing Nikto (weighted scoring by finding type)..."
+        if [[ -f scan-reports/nikto.txt ]]; then
+          while IFS= read -r line; do
+            score_delta=0
+            case "$line" in
+              *"OSVDB"* | *"CVE"* )
+                score_delta=4
+                ((CRITICAL++))
+                ;;
+              *"Server leaks"* | *"Internal IP"* )
+                score_delta=3
+                ((HIGH++))
+                ;;
+              *"Potentially dangerous"* | *"directory indexing"* )
+                score_delta=2
+                ((MEDIUM++))
+                ;;
+              *"Outdated"* | *"Deprecated"* )
+                score_delta=1
+                ((LOW++))
+                ;;
+              *)
+                score_delta=0
+                ;;
+            esac
 
-        #     score=$(echo "$score + $score_delta" | bc)
-        #     echo "- [Nikto] $line -> $score_delta"
-        #   done < scan-reports/nikto.txt
-        # fi
+            score=$(echo "$score + $score_delta" | bc)
+            echo "- [Nikto] $line -> $score_delta"
+          done < scan-reports/nikto.txt
+          cat scan-reports/nikto.txt
+        fi
 
         echo "📊 Bandit and Semgrep (assumed confidence=1.0)"
         BANDIT_HIGH=$( { jq '[.results[] | select(.issue_severity=="HIGH")] | length' scan-reports/bandit.json 2>/dev/null || echo 0; } )
