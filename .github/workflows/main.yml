@@ -369,6 +369,11 @@ jobs:
           scoreZapFull=$(cat scoreZapFull.txt)
           score=$(echo "$score + $scoreZapFull" | bc)
           echo "::notice:: Totals — Critical=$CRITICAL High=$HIGH Medium=$MEDIUM Low=$LOW Score=$score"
+          if (( $(echo "$score > 10" | bc -l) )); then
+            echo "❌ Deployment blocked: Weighted risk score $score exceeds threshold."
+          fi
+
+          echo "✅ All risk checks passed. Total score: $score"
         } || true
         echo "---------------------------------------"
 
@@ -411,7 +416,11 @@ jobs:
           scoreZapAPI=$(cat scoreZapAPI.txt)
           score=$(echo "$score + $scoreZapAPI" | bc)
           echo "::notice:: Totals — Critical=$CRITICAL High=$HIGH Medium=$MEDIUM Low=$LOW Score=$score"
-          
+          if (( $(echo "$score > 10" | bc -l) )); then
+            echo "❌ Deployment blocked: Weighted risk score $score exceeds threshold."
+          fi
+
+          echo "✅ All risk checks passed. Total score: $score"
         } || true
       
 
@@ -479,6 +488,11 @@ jobs:
           scoreNikto=$(cat niktoscore.txt)
           score=$(echo "$score + $scoreNikto" | bc)
           echo "::notice:: Totals — Critical=$CRITICAL High=$HIGH Medium=$MEDIUM Low=$LOW Score=$score"
+          if (( $(echo "$score > 10" | bc -l) )); then
+            echo "❌ Deployment blocked: Weighted risk score $score exceeds threshold."
+          fi
+
+          echo "✅ All risk checks passed. Total score: $score"
         fi
         echo "---------------------------------------"
 
@@ -493,7 +507,6 @@ jobs:
         SEMGREP_MEDIUM=$( { jq '[.results[] | select(.severity=="WARNING")] | length' scan-reports/semgrep.json 2>/dev/null || echo 0; } )
         SEMGREP_LOW=$( { jq '[.results[] | select(.severity=="INFO")] | length' scan-reports/semgrep.json 2>/dev/null || echo 0; } )
 
-        # Function to safely loop over a count
         safe_loop() {
           local count=$1
           local weight=$2
@@ -502,6 +515,11 @@ jobs:
           if [[ "$count" =~ ^[0-9]+$ ]]; then
             for i in $(seq 1 "$count"); do
               score=$(echo "$score + $weight" | bc)
+              case "$weight" in
+                3) ((HIGH++)) ;;
+                2) ((MEDIUM++)) ;;
+                1) ((LOW++)) ;;
+              esac
             done
           fi
         }
@@ -514,16 +532,10 @@ jobs:
         safe_loop "$SEMGREP_HIGH" 3 HIGH
         safe_loop "$SEMGREP_MEDIUM" 2 MEDIUM
         safe_loop "$SEMGREP_LOW" 1 LOW
+
+        echo "::notice:: Bandit Findings — High=$BANDIT_HIGH Medium=$BANDIT_MEDIUM Low=$BANDIT_LOW"
+        echo "::notice:: Semgrep Findings — High=$SEMGREP_HIGH Medium=$SEMGREP_MEDIUM Low=$SEMGREP_LOW"
         echo "---------------------------------------"
-
-
-        echo ""
-        echo "ZAP Reports"
-        scoreZapFull=$(cat scoreZapFull.txt)
-        score=$(echo "$score + $scoreZapFull" | bc)
-        scoreZapAPI=$(cat scoreZapAPI.txt)
-        score=$(echo "$score + $scoreZapAPI" | bc)
-        echo "::notice:: Totals — Critical=$CRITICAL High=$HIGH Medium=$MEDIUM Low=$LOW Score=$score"
 
         if (( $(echo "$score > 10" | bc -l) )); then
           echo "❌ Deployment blocked: Weighted risk score $score exceeds threshold."
