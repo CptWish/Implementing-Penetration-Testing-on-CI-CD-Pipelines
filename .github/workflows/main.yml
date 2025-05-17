@@ -329,6 +329,8 @@ jobs:
           esac
         }
 
+        echo ""
+        echo "---------------------------------------"
         echo "📊 Parsing ZAP Full Scan..."
         jq -c '.site[].alerts[]' zap-reports/zap-full-report.json | {
           while read -r alert; do
@@ -359,9 +361,19 @@ jobs:
             echo "----------------------"
           done
           echo "$score" > scoreZapFull.txt
+          printf "Critical: $CRITICAL \n" >> zapFullList.txt
+          printf "High: $HIGH \n" >> zapFullList.txt
+          printf "Medium: $MEDIUM \n" >> zapFullList.txt
+          printf "Low: $LOW \n" >> zapFullList.txt
+
+          scoreZapFull=$(cat scoreZapFull.txt)
+          score=$(echo "$score + $scoreZapFull" | bc)
+          echo "::notice:: Totals — Critical=$CRITICAL High=$HIGH Medium=$MEDIUM Low=$LOW Score=$score"
         } || true
+        echo "---------------------------------------"
 
-
+        echo ""
+        echo "---------------------------------------"
         echo "📊 Parsing ZAP API Scan..."
         jq -c '.site[].alerts[]' zap-reports/zap-api-report.json | {
           while read -r alert; do
@@ -391,8 +403,20 @@ jobs:
             echo "----------------------"
           done
           echo "$score" > scoreZapAPI.txt
+          printf "Critical: $CRITICAL \n" >> zapAPIList.txt
+          printf "High: $HIGH \n" >> zapAPIList.txt
+          printf "Medium: $MEDIUM \n" >> zapAPIList.txt
+          printf "Low: $LOW \n" >> zapAPIList.txt
+
+          scoreZapAPI=$(cat scoreZapAPI.txt)
+          score=$(echo "$score + $scoreZapAPI" | bc)
+          echo "::notice:: Totals — Critical=$CRITICAL High=$HIGH Medium=$MEDIUM Low=$LOW Score=$score"
+          
         } || true
       
+
+        echo ""
+        echo "---------------------------------------"
 
         echo "📊 Including Nuclei (assumed confidence=1.0)"
         if [[ -f scan-reports/nuclei.txt ]]; then
@@ -408,9 +432,14 @@ jobs:
             score=$(echo "$score + $vuln_score" | bc)
             echo "- [Nuclei] $line -> $vuln_score"
           done < scan-reports/nuclei.txt
+          touch nucleiscore.txt
+          echo "$score" > nucleiscore.txt
         fi
-
+        echo "---------------------------------------"
         
+        echo ""
+        echo "---------------------------------------"
+
         echo "📊 Parsing Nikto (weighted scoring by finding type)..."
         if [[ -f scan-reports/nikto.txt ]]; then
           while IFS= read -r line; do
@@ -440,8 +469,21 @@ jobs:
             score=$(echo "$score + $score_delta" | bc)
             echo "- [Nikto] $line -> $score_delta"
           done < scan-reports/nikto.txt
-        fi
+          touch niktoscore.txt
+          echo "$score" > niktoscore.txt
+          printf "Critical: $CRITICAL \n" >> niktoList.txt
+          printf "High: $HIGH \n" >> niktoList.txt
+          printf "Medium: $MEDIUM \n" >> niktoList.txt
+          printf "Low: $LOW \n" >> niktoList.txt
 
+          scoreNikto=$(cat niktoscore.txt)
+          score=$(echo "$score + $scoreNikto" | bc)
+          echo "::notice:: Totals — Critical=$CRITICAL High=$HIGH Medium=$MEDIUM Low=$LOW Score=$score"
+        fi
+        echo "---------------------------------------"
+
+        echo ""
+        echo "---------------------------------------"
         echo "📊 Bandit and Semgrep (assumed confidence=1.0)"
         BANDIT_HIGH=$( { jq '[.results[] | select(.issue_severity=="HIGH")] | length' scan-reports/bandit.json 2>/dev/null || echo 0; } )
         BANDIT_MEDIUM=$( { jq '[.results[] | select(.issue_severity=="MEDIUM")] | length' scan-reports/bandit.json 2>/dev/null || echo 0; } )
@@ -472,8 +514,11 @@ jobs:
         safe_loop "$SEMGREP_HIGH" 3 HIGH
         safe_loop "$SEMGREP_MEDIUM" 2 MEDIUM
         safe_loop "$SEMGREP_LOW" 1 LOW
+        echo "---------------------------------------"
+
 
         echo ""
+        echo "ZAP Reports"
         scoreZapFull=$(cat scoreZapFull.txt)
         score=$(echo "$score + $scoreZapFull" | bc)
         scoreZapAPI=$(cat scoreZapAPI.txt)
