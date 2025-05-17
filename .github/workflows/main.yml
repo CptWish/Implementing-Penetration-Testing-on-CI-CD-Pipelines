@@ -219,17 +219,20 @@ jobs:
         name: zap-api
         path: zap-reports/zap-api-report.json  
     
-    - name: Run Nikto scan
+    - name: Run Nikto scans (install inside container per URL)
       run: |
         mkdir -p scan-reports/nikto-individual
         while IFS= read -r url; do
           echo "🔍 Scanning $url with Nikto..."
-          HASH=$(echo $url | md5sum | cut -d' ' -f1)
+          HASH=$(echo "$url" | md5sum | cut -d' ' -f1)
+
           docker run --rm --network zapnet \
-            -v ${{ github.workspace }}/scan-reports:/nikto/reports \
-            digininja/nikto \
-            -host "$url" \
-            -output "/nikto/reports/nikto-individual/$HASH.txt" || true
+            -v "${{ github.workspace }}/scan-reports:/results" \
+            debian:bullseye-slim /bin/bash -c "\
+              apt-get update && \
+              apt-get install -y perl git libnet-ssleay-perl openssl libwhisker2-perl libnet-libidn-perl liburi-perl && \
+              git clone https://github.com/sullo/nikto.git /nikto && \
+              perl /nikto/program/nikto.pl -host '$url' -output '/results/nikto-individual/$HASH.txt'" || true
         done < scan-reports/urls.txt
 
     - name: Merge Nikto individual reports
@@ -285,10 +288,10 @@ jobs:
       with:
         name: nuclei
 
-    - name: Get Nikto results
-      uses: actions/download-artifact@v4
-      with:
-        name: nikto
+    # - name: Get Nikto results
+    #   uses: actions/download-artifact@v4
+    #   with:
+    #     name: nikto
 
     - name: Move artifacts to scan-reports directory
       run: |
@@ -299,7 +302,7 @@ jobs:
         mkdir zap-reports
         mv zap-api-report.json zap-reports/
         mv zap-full-report.json zap-reports/
-        mv nikto.txt scan-reports/
+        # mv nikto.txt scan-reports/
         touch scoreZapFull.txt
         touch scoreZapAPI.txt
 
@@ -406,36 +409,36 @@ jobs:
         fi
 
         
-        echo "📊 Parsing Nikto (weighted scoring by finding type)..."
-        if [[ -f scan-reports/nikto.txt ]]; then
-          while IFS= read -r line; do
-            score_delta=0
-            case "$line" in
-              *"OSVDB"* | *"CVE"* )
-                score_delta=4
-                ((CRITICAL++))
-                ;;
-              *"Server leaks"* | *"Internal IP"* )
-                score_delta=3
-                ((HIGH++))
-                ;;
-              *"Potentially dangerous"* | *"directory indexing"* )
-                score_delta=2
-                ((MEDIUM++))
-                ;;
-              *"Outdated"* | *"Deprecated"* )
-                score_delta=1
-                ((LOW++))
-                ;;
-              *)
-                score_delta=0
-                ;;
-            esac
+        # echo "📊 Parsing Nikto (weighted scoring by finding type)..."
+        # if [[ -f scan-reports/nikto.txt ]]; then
+        #   while IFS= read -r line; do
+        #     score_delta=0
+        #     case "$line" in
+        #       *"OSVDB"* | *"CVE"* )
+        #         score_delta=4
+        #         ((CRITICAL++))
+        #         ;;
+        #       *"Server leaks"* | *"Internal IP"* )
+        #         score_delta=3
+        #         ((HIGH++))
+        #         ;;
+        #       *"Potentially dangerous"* | *"directory indexing"* )
+        #         score_delta=2
+        #         ((MEDIUM++))
+        #         ;;
+        #       *"Outdated"* | *"Deprecated"* )
+        #         score_delta=1
+        #         ((LOW++))
+        #         ;;
+        #       *)
+        #         score_delta=0
+        #         ;;
+        #     esac
 
-            score=$(echo "$score + $score_delta" | bc)
-            echo "- [Nikto] $line -> $score_delta"
-          done < scan-reports/nikto.txt
-        fi
+        #     score=$(echo "$score + $score_delta" | bc)
+        #     echo "- [Nikto] $line -> $score_delta"
+        #   done < scan-reports/nikto.txt
+        # fi
 
         echo "📊 Bandit and Semgrep (assumed confidence=1.0)"
         BANDIT_HIGH=$( { jq '[.results[] | select(.issue_severity=="HIGH")] | length' scan-reports/bandit.json 2>/dev/null || echo 0; } )
