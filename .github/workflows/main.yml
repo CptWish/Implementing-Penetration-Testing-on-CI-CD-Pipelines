@@ -234,12 +234,14 @@ jobs:
               git clone https://github.com/sullo/nikto.git /nikto && \
               perl /nikto/program/nikto.pl -host '$url' -output '/results/nikto-individual/$HASH.txt'" || true
         done < scan-reports/urls.txt
+        
 
     - name: Merge Nikto individual reports
       run: |
         mkdir -p scan-reports
         echo "🔗 Merging Nikto individual reports into scan-reports/nikto.txt"
         cat scan-reports/nikto-individual/*.txt > scan-reports/nikto.txt || echo "No Nikto reports found."
+        cat scan-reports/nikto.txt
     
     - name: Upload Nikto artifact
       uses: actions/upload-artifact@v4
@@ -438,7 +440,6 @@ jobs:
             score=$(echo "$score + $score_delta" | bc)
             echo "- [Nikto] $line -> $score_delta"
           done < scan-reports/nikto.txt
-          cat scan-reports/nikto.txt
         fi
 
         echo "📊 Bandit and Semgrep (assumed confidence=1.0)"
