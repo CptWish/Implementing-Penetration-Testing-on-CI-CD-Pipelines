@@ -371,9 +371,11 @@ jobs:
           echo "::notice:: Totals — Critical=$CRITICAL High=$HIGH Medium=$MEDIUM Low=$LOW Score=$score"
           if (( $(echo "$score > 10" | bc -l) )); then
             echo "❌ Deployment blocked: Weighted risk score $score exceeds threshold."
+          else
+            echo "✅ All risk checks passed. Total score: $score"
           fi
 
-          echo "✅ All risk checks passed. Total score: $score"
+    
         } || true
         echo "---------------------------------------"
 
@@ -418,9 +420,9 @@ jobs:
           echo "::notice:: Totals — Critical=$CRITICAL High=$HIGH Medium=$MEDIUM Low=$LOW Score=$score"
           if (( $(echo "$score > 10" | bc -l) )); then
             echo "❌ Deployment blocked: Weighted risk score $score exceeds threshold."
+          else
+            echo "✅ All risk checks passed. Total score: $score"
           fi
-
-          echo "✅ All risk checks passed. Total score: $score"
         } || true
       
 
@@ -490,9 +492,9 @@ jobs:
           echo "::notice:: Totals — Critical=$CRITICAL High=$HIGH Medium=$MEDIUM Low=$LOW Score=$score"
           if (( $(echo "$score > 10" | bc -l) )); then
             echo "❌ Deployment blocked: Weighted risk score $score exceeds threshold."
+          else
+            echo "✅ All risk checks passed. Total score: $score"
           fi
-
-          echo "✅ All risk checks passed. Total score: $score"
         fi
         echo "---------------------------------------"
 
@@ -507,10 +509,10 @@ jobs:
         SEMGREP_MEDIUM=$( { jq '[.results[] | select(.severity=="WARNING")] | length' scan-reports/semgrep.json 2>/dev/null || echo 0; } )
         SEMGREP_LOW=$( { jq '[.results[] | select(.severity=="INFO")] | length' scan-reports/semgrep.json 2>/dev/null || echo 0; } )
 
+        score=0
         safe_loop() {
           local count=$1
           local weight=$2
-          local label=$3
 
           if [[ "$count" =~ ^[0-9]+$ ]]; then
             for i in $(seq 1 "$count"); do
