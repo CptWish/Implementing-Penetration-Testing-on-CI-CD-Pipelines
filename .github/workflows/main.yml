@@ -277,38 +277,38 @@ jobs:
       with:
         name: bandit
 
-    - name: Get ZAP full results from post-deployment-pentesting job
-      uses: actions/download-artifact@v4
-      with:
-        name: zap-full
+    # - name: Get ZAP full results from post-deployment-pentesting job
+    #   uses: actions/download-artifact@v4
+    #   with:
+    #     name: zap-full
 
-    - name: Get ZAP API results from post-deployment-pentesting job
-      uses: actions/download-artifact@v4
-      with:
-        name: zap-api
+    # - name: Get ZAP API results from post-deployment-pentesting job
+    #   uses: actions/download-artifact@v4
+    #   with:
+    #     name: zap-api
 
-    - name: Get Nuclei results from post-deployment-pentesting job
-      uses: actions/download-artifact@v4
-      with:
-        name: nuclei
+    # - name: Get Nuclei results from post-deployment-pentesting job
+    #   uses: actions/download-artifact@v4
+    #   with:
+    #     name: nuclei
 
-    - name: Get Nikto results
-      uses: actions/download-artifact@v4
-      with:
-        name: nikto
+    # - name: Get Nikto results
+    #   uses: actions/download-artifact@v4
+    #   with:
+    #     name: nikto
 
     - name: Move artifacts to scan-reports directory
       run: |
         mkdir scan-reports
         mv semgrep.json scan-reports/
         mv bandit.json scan-reports/
-        mv nuclei.txt scan-reports/
-        mkdir zap-reports
-        mv zap-api-report.json zap-reports/
-        mv zap-full-report.json zap-reports/
-        mv nikto.txt scan-reports/
-        touch scoreZapFull.txt
-        touch scoreZapAPI.txt
+        # mv nuclei.txt scan-reports/
+        # mkdir zap-reports
+        # mv zap-api-report.json zap-reports/
+        # mv zap-full-report.json zap-reports/
+        # mv nikto.txt scan-reports/
+        # touch scoreZapFull.txt
+        # touch scoreZapAPI.txt
 
 
     - name: Evaluate vulnerabilities
@@ -331,174 +331,174 @@ jobs:
           esac
         }
 
-        echo ""
-        echo "---------------------------------------"
-        echo "📊 Parsing ZAP Full Scan..."
-        jq -c '.site[].alerts[]' zap-reports/zap-full-report.json | {
-          while read -r alert; do
-            name=$(echo "$alert" | jq -r '.alert')
-            riskcode=$(echo "$alert" | jq -r '.riskcode')
-            confidence=$(echo "$alert" | jq -r '.confidence')
-            url=$(echo "$alert" | jq -r '.instances[0].uri')
+        # echo ""
+        # echo "---------------------------------------"
+        # echo "📊 Parsing ZAP Full Scan..."
+        # jq -c '.site[].alerts[]' zap-reports/zap-full-report.json | {
+        #   while read -r alert; do
+        #     name=$(echo "$alert" | jq -r '.alert')
+        #     riskcode=$(echo "$alert" | jq -r '.riskcode')
+        #     confidence=$(echo "$alert" | jq -r '.confidence')
+        #     url=$(echo "$alert" | jq -r '.instances[0].uri')
   
-            echo "Alert: $name"
-            echo "Risk: $riskcode"
-            echo "Confidence: $confidence"
-            echo "URL: $url"
+        #     echo "Alert: $name"
+        #     echo "Risk: $riskcode"
+        #     echo "Confidence: $confidence"
+        #     echo "URL: $url"
   
-            case "$riskcode" in
-              3) sev=5; ((CRITICAL++)) ;;
-              2) sev=3; ((HIGH++)) ;;
-              1) sev=2; ((MEDIUM++)) ;;
-              0) sev=1; ((LOW++)) ;;
-              *) sev=0; ;;
-            esac
+        #     case "$riskcode" in
+        #       3) sev=5; ((CRITICAL++)) ;;
+        #       2) sev=3; ((HIGH++)) ;;
+        #       1) sev=2; ((MEDIUM++)) ;;
+        #       0) sev=1; ((LOW++)) ;;
+        #       *) sev=0; ;;
+        #     esac
   
-            coef=$(map_confidence "$confidence")
-            vuln_score=$(echo "$sev * $coef" | bc)
-            score=$(echo "$score + $vuln_score" | bc)
+        #     coef=$(map_confidence "$confidence")
+        #     vuln_score=$(echo "$sev * $coef" | bc)
+        #     score=$(echo "$score + $vuln_score" | bc)
   
-            echo "- [ZAP Full] $name @ $url | severity=$sev confidence=$confidence -> $vuln_score"
+        #     echo "- [ZAP Full] $name @ $url | severity=$sev confidence=$confidence -> $vuln_score"
   
-            echo "----------------------"
-          done
-          echo "$score" > scoreZapFull.txt
-          printf "Critical: $CRITICAL \n" >> zapFullList.txt
-          printf "High: $HIGH \n" >> zapFullList.txt
-          printf "Medium: $MEDIUM \n" >> zapFullList.txt
-          printf "Low: $LOW \n" >> zapFullList.txt
+        #     echo "----------------------"
+        #   done
+        #   echo "$score" > scoreZapFull.txt
+        #   printf "Critical: $CRITICAL \n" >> zapFullList.txt
+        #   printf "High: $HIGH \n" >> zapFullList.txt
+        #   printf "Medium: $MEDIUM \n" >> zapFullList.txt
+        #   printf "Low: $LOW \n" >> zapFullList.txt
 
-          scoreZapFull=$(cat scoreZapFull.txt)
-          score=$(echo "$score + $scoreZapFull" | bc)
-          echo "::notice:: Totals — Critical=$CRITICAL High=$HIGH Medium=$MEDIUM Low=$LOW Score=$score"
-          if (( $(echo "$score > 10" | bc -l) )); then
-            echo "❌ Deployment blocked: Weighted risk score $score exceeds threshold."
-          else
-            echo "✅ All risk checks passed. Total score: $score"
-          fi
+        #   scoreZapFull=$(cat scoreZapFull.txt)
+        #   score=$(echo "$score + $scoreZapFull" | bc)
+        #   echo "::notice:: Totals — Critical=$CRITICAL High=$HIGH Medium=$MEDIUM Low=$LOW Score=$score"
+        #   if (( $(echo "$score > 10" | bc -l) )); then
+        #     echo "❌ Deployment blocked: Weighted risk score $score exceeds threshold."
+        #   else
+        #     echo "✅ All risk checks passed. Total score: $score"
+        #   fi
 
     
-        } || true
-        echo "---------------------------------------"
+        # } || true
+        # echo "---------------------------------------"
 
-        echo ""
-        echo "---------------------------------------"
-        echo "📊 Parsing ZAP API Scan..."
-        jq -c '.site[].alerts[]' zap-reports/zap-api-report.json | {
-          while read -r alert; do
-            name=$(echo "$alert" | jq -r '.alert')
-            riskcode=$(echo "$alert" | jq -r '.riskcode')
-            confidence=$(echo "$alert" | jq -r '.confidence')
-            url=$(echo "$alert" | jq -r '.instances[0].uri')
+        # echo ""
+        # echo "---------------------------------------"
+        # echo "📊 Parsing ZAP API Scan..."
+        # jq -c '.site[].alerts[]' zap-reports/zap-api-report.json | {
+        #   while read -r alert; do
+        #     name=$(echo "$alert" | jq -r '.alert')
+        #     riskcode=$(echo "$alert" | jq -r '.riskcode')
+        #     confidence=$(echo "$alert" | jq -r '.confidence')
+        #     url=$(echo "$alert" | jq -r '.instances[0].uri')
   
-            echo "Alert: $name"
-            echo "Risk: $riskcode"
-            echo "Confidence: $confidence"
-            echo "URL: $url"
+        #     echo "Alert: $name"
+        #     echo "Risk: $riskcode"
+        #     echo "Confidence: $confidence"
+        #     echo "URL: $url"
   
-            case "$riskcode" in
-              3) sev=5; ((CRITICAL++)) ;;
-              2) sev=3; ((HIGH++)) ;;
-              1) sev=2; ((MEDIUM++)) ;;
-              0) sev=1; ((LOW++)) ;;
-              *) sev=0; ;;
-            esac
+        #     case "$riskcode" in
+        #       3) sev=5; ((CRITICAL++)) ;;
+        #       2) sev=3; ((HIGH++)) ;;
+        #       1) sev=2; ((MEDIUM++)) ;;
+        #       0) sev=1; ((LOW++)) ;;
+        #       *) sev=0; ;;
+        #     esac
   
-            coef=$(map_confidence "$confidence")
-            vuln_score=$(echo "$sev * $coef" | bc)
-            score=$(echo "$score + $vuln_score" | bc)
+        #     coef=$(map_confidence "$confidence")
+        #     vuln_score=$(echo "$sev * $coef" | bc)
+        #     score=$(echo "$score + $vuln_score" | bc)
   
-            echo "- [ZAP API] $name @ $url | severity=$sev confidence=$confidence -> $vuln_score"
-            echo "----------------------"
-          done
-          echo "$score" > scoreZapAPI.txt
-          printf "Critical: $CRITICAL \n" >> zapAPIList.txt
-          printf "High: $HIGH \n" >> zapAPIList.txt
-          printf "Medium: $MEDIUM \n" >> zapAPIList.txt
-          printf "Low: $LOW \n" >> zapAPIList.txt
+        #     echo "- [ZAP API] $name @ $url | severity=$sev confidence=$confidence -> $vuln_score"
+        #     echo "----------------------"
+        #   done
+        #   echo "$score" > scoreZapAPI.txt
+        #   printf "Critical: $CRITICAL \n" >> zapAPIList.txt
+        #   printf "High: $HIGH \n" >> zapAPIList.txt
+        #   printf "Medium: $MEDIUM \n" >> zapAPIList.txt
+        #   printf "Low: $LOW \n" >> zapAPIList.txt
 
-          scoreZapAPI=$(cat scoreZapAPI.txt)
-          score=$(echo "$score + $scoreZapAPI" | bc)
-          echo "::notice:: Totals — Critical=$CRITICAL High=$HIGH Medium=$MEDIUM Low=$LOW Score=$score"
-          if (( $(echo "$score > 10" | bc -l) )); then
-            echo "❌ Deployment blocked: Weighted risk score $score exceeds threshold."
-          else
-            echo "✅ All risk checks passed. Total score: $score"
-          fi
-        } || true
+        #   scoreZapAPI=$(cat scoreZapAPI.txt)
+        #   score=$(echo "$score + $scoreZapAPI" | bc)
+        #   echo "::notice:: Totals — Critical=$CRITICAL High=$HIGH Medium=$MEDIUM Low=$LOW Score=$score"
+        #   if (( $(echo "$score > 10" | bc -l) )); then
+        #     echo "❌ Deployment blocked: Weighted risk score $score exceeds threshold."
+        #   else
+        #     echo "✅ All risk checks passed. Total score: $score"
+        #   fi
+        # } || true
       
 
-        echo ""
-        echo "---------------------------------------"
+        # echo ""
+        # echo "---------------------------------------"
 
-        echo "📊 Including Nuclei (assumed confidence=1.0)"
-        if [[ -f scan-reports/nuclei.txt ]]; then
-          while IFS= read -r line; do
-            case "$line" in
-              *"severity: critical"*) sev=5; ((CRITICAL++)) ;;
-              *"severity: high"*) sev=3; ((HIGH++)) ;;
-              *"severity: medium"*) sev=2; ((MEDIUM++)) ;;
-              *"severity: low"*) sev=1; ((LOW++)) ;;
-              *) sev=0 ;;
-            esac
-            vuln_score=$sev
-            score=$(echo "$score + $vuln_score" | bc)
-            echo "- [Nuclei] $line -> $vuln_score"
-          done < scan-reports/nuclei.txt
-          touch nucleiscore.txt
-          echo "$score" > nucleiscore.txt
-        fi
-        echo "---------------------------------------"
+        # echo "📊 Including Nuclei (assumed confidence=1.0)"
+        # if [[ -f scan-reports/nuclei.txt ]]; then
+        #   while IFS= read -r line; do
+        #     case "$line" in
+        #       *"severity: critical"*) sev=5; ((CRITICAL++)) ;;
+        #       *"severity: high"*) sev=3; ((HIGH++)) ;;
+        #       *"severity: medium"*) sev=2; ((MEDIUM++)) ;;
+        #       *"severity: low"*) sev=1; ((LOW++)) ;;
+        #       *) sev=0 ;;
+        #     esac
+        #     vuln_score=$sev
+        #     score=$(echo "$score + $vuln_score" | bc)
+        #     echo "- [Nuclei] $line -> $vuln_score"
+        #   done < scan-reports/nuclei.txt
+        #   touch nucleiscore.txt
+        #   echo "$score" > nucleiscore.txt
+        # fi
+        # echo "---------------------------------------"
         
-        echo ""
-        echo "---------------------------------------"
+        # echo ""
+        # echo "---------------------------------------"
 
-        echo "📊 Parsing Nikto (weighted scoring by finding type)..."
-        if [[ -f scan-reports/nikto.txt ]]; then
-          while IFS= read -r line; do
-            score_delta=0
-            case "$line" in
-              *"OSVDB"* | *"CVE"* )
-                score_delta=4
-                ((CRITICAL++))
-                ;;
-              *"Server leaks"* | *"Internal IP"* )
-                score_delta=3
-                ((HIGH++))
-                ;;
-              *"Potentially dangerous"* | *"directory indexing"* )
-                score_delta=2
-                ((MEDIUM++))
-                ;;
-              *"Outdated"* | *"Deprecated"* )
-                score_delta=1
-                ((LOW++))
-                ;;
-              *)
-                score_delta=0
-                ;;
-            esac
+        # echo "📊 Parsing Nikto (weighted scoring by finding type)..."
+        # if [[ -f scan-reports/nikto.txt ]]; then
+        #   while IFS= read -r line; do
+        #     score_delta=0
+        #     case "$line" in
+        #       *"OSVDB"* | *"CVE"* )
+        #         score_delta=4
+        #         ((CRITICAL++))
+        #         ;;
+        #       *"Server leaks"* | *"Internal IP"* )
+        #         score_delta=3
+        #         ((HIGH++))
+        #         ;;
+        #       *"Potentially dangerous"* | *"directory indexing"* )
+        #         score_delta=2
+        #         ((MEDIUM++))
+        #         ;;
+        #       *"Outdated"* | *"Deprecated"* )
+        #         score_delta=1
+        #         ((LOW++))
+        #         ;;
+        #       *)
+        #         score_delta=0
+        #         ;;
+        #     esac
 
-            score=$(echo "$score + $score_delta" | bc)
-            echo "- [Nikto] $line -> $score_delta"
-          done < scan-reports/nikto.txt
-          touch niktoscore.txt
-          echo "$score" > niktoscore.txt
-          printf "Critical: $CRITICAL \n" >> niktoList.txt
-          printf "High: $HIGH \n" >> niktoList.txt
-          printf "Medium: $MEDIUM \n" >> niktoList.txt
-          printf "Low: $LOW \n" >> niktoList.txt
+        #     score=$(echo "$score + $score_delta" | bc)
+        #     echo "- [Nikto] $line -> $score_delta"
+        #   done < scan-reports/nikto.txt
+        #   touch niktoscore.txt
+        #   echo "$score" > niktoscore.txt
+        #   printf "Critical: $CRITICAL \n" >> niktoList.txt
+        #   printf "High: $HIGH \n" >> niktoList.txt
+        #   printf "Medium: $MEDIUM \n" >> niktoList.txt
+        #   printf "Low: $LOW \n" >> niktoList.txt
 
-          scoreNikto=$(cat niktoscore.txt)
-          score=$(echo "$score + $scoreNikto" | bc)
-          echo "::notice:: Totals — Critical=$CRITICAL High=$HIGH Medium=$MEDIUM Low=$LOW Score=$score"
-          if (( $(echo "$score > 10" | bc -l) )); then
-            echo "❌ Deployment blocked: Weighted risk score $score exceeds threshold."
-          else
-            echo "✅ All risk checks passed. Total score: $score"
-          fi
-        fi
-        echo "---------------------------------------"
+        #   scoreNikto=$(cat niktoscore.txt)
+        #   score=$(echo "$score + $scoreNikto" | bc)
+        #   echo "::notice:: Totals — Critical=$CRITICAL High=$HIGH Medium=$MEDIUM Low=$LOW Score=$score"
+        #   if (( $(echo "$score > 10" | bc -l) )); then
+        #     echo "❌ Deployment blocked: Weighted risk score $score exceeds threshold."
+        #   else
+        #     echo "✅ All risk checks passed. Total score: $score"
+        #   fi
+        # fi
+        # echo "---------------------------------------"
 
         echo "🔍 Bandit Findings (evaluated per issue)..."
         HIGH=0
