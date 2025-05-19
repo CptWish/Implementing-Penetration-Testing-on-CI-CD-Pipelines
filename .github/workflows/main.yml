@@ -521,7 +521,7 @@ jobs:
             echo "$file"
             echo "$line_number"
             echo "$issue_text"
-            case "$severity" in
+            case $(echo "$severity") in
               "HIGH") sev=3; echo "case1"; ((HIGH++)) ;;
               "MEDIUM") sev=2; echo "case2"; ((MEDIUM++)) ;;
               "LOW") sev=1; echo "case3"; ((LOW++)) ;;
