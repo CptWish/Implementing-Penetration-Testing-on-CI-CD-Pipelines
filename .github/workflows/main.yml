@@ -313,7 +313,7 @@ jobs:
 
     - name: Evaluate vulnerabilities
       run: |
-
+        #!/bin/bash
         score=0
         CRITICAL=0
         HIGH=0
