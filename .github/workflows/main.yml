@@ -501,18 +501,19 @@ jobs:
         # echo "---------------------------------------"
 
         echo "🔍 Bandit Findings (evaluated per issue)..."
-        HIGH=0
-        MEDIUM=0
-        LOW=0
-        score=0
+
         echo "Debug 1"
         cat scan-reports/bandit.json
         if [[ -f scan-reports/bandit.json ]]; then
           echo "Debug 2"
+          HIGH=0
+          MEDIUM=0
+          LOW=0
+          score=0
           while read -r finding; do
             sev=0
             echo "Debug 3"
-            severity=$(echo "$finding" | jq -r '.issue_severity // "empty"') || severity="UNKNOWN"
+            severity=$(echo "$finding" | jq -r '.issue_severity // empty') || severity="UNKNOWN"
             file=$(echo "$finding" | jq -r '.filename // empty') || file="UNKNOWN"
             line_number=$(echo "$finding" | jq -r '.line_number // 0') || line_number=0
             issue_text=$(echo "$finding" | jq -r '.issue_text // "No Description"') || issue_text="(missing)"
