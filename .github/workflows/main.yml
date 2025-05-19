@@ -512,7 +512,7 @@ jobs:
           while read -r finding; do
             sev=0
             echo "Debug 3"
-            severity=$(echo "$finding" | jq -r '.issue_severity // empty') || severity="UNKNOWN"
+            severity=$(echo "$finding" | jq -r '.issue_severity // "empty"') || severity="UNKNOWN"
             file=$(echo "$finding" | jq -r '.filename // empty') || file="UNKNOWN"
             line_number=$(echo "$finding" | jq -r '.line_number // 0') || line_number=0
             issue_text=$(echo "$finding" | jq -r '.issue_text // "No Description"') || issue_text="(missing)"
