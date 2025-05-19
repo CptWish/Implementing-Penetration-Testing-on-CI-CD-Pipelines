@@ -522,14 +522,13 @@ jobs:
             echo "$line_number"
             echo "$issue_text"
             case "$severity" in
-              "HIGH") sev=3; ((HIGH++)) ;;
-              "MEDIUM") sev=2; ((MEDIUM++)) ;;
-              "LOW") sev=1; ((LOW++)) ;;
+              "HIGH") sev=3; echo "case1"; ((HIGH++)) ;;
+              "MEDIUM") sev=2; echo "case2"; ((MEDIUM++)) ;;
+              "LOW") sev=1; echo "case3"; ((LOW++)) ;;
               *) sev=0 ;;
             esac
             echo "Debug 5"
-            vuln_score=$sev
-            score=$(echo "$score + $vuln_score" | bc)
+            score=$(echo "$score + $sev" | bc)
             echo "Debug 6"
             echo "- [Bandit] $severity in $file:$line_number — $issue_text -> $vuln_score"
           done < <(jq -c '.results[]' scan-reports/bandit.json)
