@@ -501,38 +501,38 @@ jobs:
         echo "---------------------------------------"
 
         echo "🔍 Bandit Findings (evaluated per issue)..."
-        HIGH=0
-        MEDIUM=0
-        LOW=0
-        score=0
-        echo "Debug 1"
-        cat scan-reports/bandit.json
-        if [[ -f scan-reports/bandit.json ]]; then
-          echo "Debug 2"
-          while read -r finding; do
-            echo "Debug 3"
-            severity=$(echo "$finding" | jq -r '.issue_severity // empty') || severity="UNKNOWN"
-            file=$(echo "$finding" | jq -r '.filename // empty') || file="UNKNOWN"
-            line_number=$(echo "$finding" | jq -r '.line_number // 0') || line_number=0
-            issue_text=$(echo "$finding" | jq -r '.issue_text // "No Description"') || issue_text="(missing)"
-            echo "Debug 4"
-            case "$severity" in
-              "HIGH") sev=3; ((HIGH++)) ;;
-              "MEDIUM") sev=2; ((MEDIUM++)) ;;
-              "LOW") sev=1; ((LOW++)) ;;
-              *) sev=0 ;;
-            esac
-            echo "Debug 5"
-            vuln_score=$sev
-            score=$(echo "$score + $vuln_score" | bc)
-            echo "Debug 6"
-            echo "- [Bandit] $severity in $file:$line_number — $issue_text -> $vuln_score"
-          done < <(jq -c '.results[]' scan-reports/bandit.json)
-          echo "Debug 7"
-          echo "::notice:: Bandit Evaluation — High=$HIGH Medium=$MEDIUM Low=$LOW Score=$score"
-        else
-          echo "⚠️ Bandit report not found."
-        fi
+        # HIGH=0
+        # MEDIUM=0
+        # LOW=0
+        # score=0
+        # echo "Debug 1"
+        # cat scan-reports/bandit.json
+        # if [[ -f scan-reports/bandit.json ]]; then
+        #   echo "Debug 2"
+        #   while read -r finding; do
+        #     echo "Debug 3"
+        #     severity=$(echo "$finding" | jq -r '.issue_severity // empty') || severity="UNKNOWN"
+        #     file=$(echo "$finding" | jq -r '.filename // empty') || file="UNKNOWN"
+        #     line_number=$(echo "$finding" | jq -r '.line_number // 0') || line_number=0
+        #     issue_text=$(echo "$finding" | jq -r '.issue_text // "No Description"') || issue_text="(missing)"
+        #     echo "Debug 4"
+        #     case "$severity" in
+        #       "HIGH") sev=3; ((HIGH++)) ;;
+        #       "MEDIUM") sev=2; ((MEDIUM++)) ;;
+        #       "LOW") sev=1; ((LOW++)) ;;
+        #       *) sev=0 ;;
+        #     esac
+        #     echo "Debug 5"
+        #     vuln_score=$sev
+        #     score=$(echo "$score + $vuln_score" | bc)
+        #     echo "Debug 6"
+        #     echo "- [Bandit] $severity in $file:$line_number — $issue_text -> $vuln_score"
+        #   done < <(jq -c '.results[]' scan-reports/bandit.json)
+        #   echo "Debug 7"
+        #   echo "::notice:: Bandit Evaluation — High=$HIGH Medium=$MEDIUM Low=$LOW Score=$score"
+        # else
+        #   echo "⚠️ Bandit report not found."
+        # fi
 
         echo ""
         echo "---------------------------------------"
