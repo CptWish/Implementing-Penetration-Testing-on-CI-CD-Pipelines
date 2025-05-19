@@ -500,11 +500,14 @@ jobs:
         fi
         echo "---------------------------------------"
 
-        echo ""
-        echo "---------------------------------------"
-        echo "📊 Bandit Findings (evaluated per issue)..."
-        if [[ -f scan-reports/bandit.json ]]; then
-          jq -c '.results[]' scan-reports/bandit.json | while read -r finding; do
+        echo "🔍 Bandit Findings (evaluated per issue)..."
+        HIGH=0
+        MEDIUM=0
+        LOW=0
+        score=0
+
+        if [[ -f ./scan-reports/bandit.json ]]; then
+          while read -r finding; do
             severity=$(echo "$finding" | jq -r '.issue_severity')
             file=$(echo "$finding" | jq -r '.filename')
             line_number=$(echo "$finding" | jq -r '.line_number')
@@ -520,20 +523,36 @@ jobs:
             vuln_score=$sev
             score=$(echo "$score + $vuln_score" | bc)
 
-            echo "- [Bandit] $severity issue in $file:$line_number — $issue_text -> $vuln_score"
-          done
+            echo "- [Bandit] $severity in $file:$line_number — $issue_text -> $vuln_score"
+          done < <(jq -c '.results[]' scan-reports/bandit.json)
+
+          echo "::notice:: Bandit Evaluation — High=$HIGH Medium=$MEDIUM Low=$LOW Score=$score"
         else
           echo "⚠️ Bandit report not found."
         fi
-        echo "::notice:: Bandit Evaluation — High=$HIGH Medium=$MEDIUM Low=$LOW"
-        echo "---------------------------------------"
 
         echo ""
         echo "---------------------------------------"
+
         echo "📊 Semgrep Findings (evaluated per issue)..."
+        HIGH=0
+        MEDIUM=0
+        LOW=0
+        score=0
+
+        map_confidence_semgrep() {
+          case "$1" in
+            "HIGH") echo 1.0 ;;
+            "MEDIUM") echo 0.8 ;;
+            "LOW") echo 0.5 ;;
+            *) echo 0.0 ;;
+          esac
+        }
+
         if [[ -f scan-reports/semgrep.json ]]; then
-          jq -c '.results[]' scan-reports/semgrep.json | while read -r finding; do
-            severity=$(echo "$finding" | jq -r '.severity')
+          while read -r finding; do
+            severity=$(echo "$finding" | jq -r '.extra.severity // "INFO"')
+            confidence=$(echo "$finding" | jq -r '.extra.metadata.confidence // "LOW"')
             file=$(echo "$finding" | jq -r '.path')
             start_line=$(echo "$finding" | jq -r '.start.line')
             message=$(echo "$finding" | jq -r '.extra.message // .message')
@@ -545,16 +564,21 @@ jobs:
               *) sev=0 ;;
             esac
 
-            vuln_score=$sev
+            coef=$(map_confidence_semgrep "$confidence")
+            vuln_score=$(echo "$sev * $coef" | bc)
             score=$(echo "$score + $vuln_score" | bc)
 
-            echo "- [Semgrep] $severity in $file:$start_line — $message -> $vuln_score"
-          done
+            echo "- [Semgrep] in $file:$start_line — $message"
+            echo "  Severity: $severity | Confidence: $confidence -> Score: $vuln_score"
+          done < <(jq -c '.results[]' scan-reports/semgrep.json)
+
+          echo "::notice:: Semgrep Evaluation — High=$HIGH Medium=$MEDIUM Low=$LOW Score=$score"
         else
           echo "⚠️ Semgrep report not found."
         fi
-        echo "::notice:: Semgrep Evaluation — High=$HIGH Medium=$MEDIUM Low=$LOW"
+
         echo "---------------------------------------"
+
 
 
         
