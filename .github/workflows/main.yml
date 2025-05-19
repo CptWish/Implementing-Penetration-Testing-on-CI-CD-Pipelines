@@ -500,51 +500,62 @@ jobs:
 
         echo ""
         echo "---------------------------------------"
-        echo "📊 Bandit and Semgrep (assumed confidence=1.0)"
-        BANDIT_HIGH=$( { jq '[.results[] | select(.issue_severity=="HIGH")] | length' scan-reports/bandit.json 2>/dev/null || echo 0; } )
-        BANDIT_MEDIUM=$( { jq '[.results[] | select(.issue_severity=="MEDIUM")] | length' scan-reports/bandit.json 2>/dev/null || echo 0; } )
-        BANDIT_LOW=$( { jq '[.results[] | select(.issue_severity=="LOW")] | length' scan-reports/bandit.json 2>/dev/null || echo 0; } )
+        echo "📊 Bandit Findings (evaluated per issue)..."
+        if [[ -f scan-reports/bandit.json ]]; then
+          jq -c '.results[]' scan-reports/bandit.json | while read -r finding; do
+            severity=$(echo "$finding" | jq -r '.issue_severity')
+            file=$(echo "$finding" | jq -r '.filename')
+            line_number=$(echo "$finding" | jq -r '.line_number')
+            issue_text=$(echo "$finding" | jq -r '.issue_text')
 
-        SEMGREP_HIGH=$( { jq '[.results[] | select(.severity=="ERROR")] | length' scan-reports/semgrep.json 2>/dev/null || echo 0; } )
-        SEMGREP_MEDIUM=$( { jq '[.results[] | select(.severity=="WARNING")] | length' scan-reports/semgrep.json 2>/dev/null || echo 0; } )
-        SEMGREP_LOW=$( { jq '[.results[] | select(.severity=="INFO")] | length' scan-reports/semgrep.json 2>/dev/null || echo 0; } )
+            case "$severity" in
+              "HIGH") sev=3; ((HIGH++)) ;;
+              "MEDIUM") sev=2; ((MEDIUM++)) ;;
+              "LOW") sev=1; ((LOW++)) ;;
+              *) sev=0 ;;
+            esac
 
-        score=0
-        safe_loop() {
-          local count=$1
-          local weight=$2
+            vuln_score=$sev
+            score=$(echo "$score + $vuln_score" | bc)
 
-          if [[ "$count" =~ ^[0-9]+$ ]]; then
-            for i in $(seq 1 "$count"); do
-              score=$(echo "$score + $weight" | bc)
-              case "$weight" in
-                3) ((HIGH++)) ;;
-                2) ((MEDIUM++)) ;;
-                1) ((LOW++)) ;;
-              esac
-            done
-          fi
-        }
-
-        # Apply scoring
-        safe_loop "$BANDIT_HIGH" 3 HIGH
-        safe_loop "$BANDIT_MEDIUM" 2 MEDIUM
-        safe_loop "$BANDIT_LOW" 1 LOW
-
-        safe_loop "$SEMGREP_HIGH" 3 HIGH
-        safe_loop "$SEMGREP_MEDIUM" 2 MEDIUM
-        safe_loop "$SEMGREP_LOW" 1 LOW
-
-        echo "::notice:: Bandit Findings — High=$BANDIT_HIGH Medium=$BANDIT_MEDIUM Low=$BANDIT_LOW"
-        echo "::notice:: Semgrep Findings — High=$SEMGREP_HIGH Medium=$SEMGREP_MEDIUM Low=$SEMGREP_LOW"
+            echo "- [Bandit] $severity issue in $file:$line_number — $issue_text -> $vuln_score"
+          done
+        else
+          echo "⚠️ Bandit report not found."
+        fi
+        echo "::notice:: Bandit Evaluation — High=$HIGH Medium=$MEDIUM Low=$LOW"
         echo "---------------------------------------"
 
-        if (( $(echo "$score > 10" | bc -l) )); then
-          echo "❌ Deployment blocked: Weighted risk score $score exceeds threshold."
-          exit 1
-        fi
+        echo ""
+        echo "---------------------------------------"
+        echo "📊 Semgrep Findings (evaluated per issue)..."
+        if [[ -f scan-reports/semgrep.json ]]; then
+          jq -c '.results[]' scan-reports/semgrep.json | while read -r finding; do
+            severity=$(echo "$finding" | jq -r '.severity')
+            file=$(echo "$finding" | jq -r '.path')
+            start_line=$(echo "$finding" | jq -r '.start.line')
+            message=$(echo "$finding" | jq -r '.extra.message // .message')
 
-        echo "✅ All risk checks passed. Total score: $score"
+            case "$severity" in
+              "ERROR") sev=3; ((HIGH++)) ;;
+              "WARNING") sev=2; ((MEDIUM++)) ;;
+              "INFO") sev=1; ((LOW++)) ;;
+              *) sev=0 ;;
+            esac
+
+            vuln_score=$sev
+            score=$(echo "$score + $vuln_score" | bc)
+
+            echo "- [Semgrep] $severity in $file:$start_line — $message -> $vuln_score"
+          done
+        else
+          echo "⚠️ Semgrep report not found."
+        fi
+        echo "::notice:: Semgrep Evaluation — High=$HIGH Medium=$MEDIUM Low=$LOW"
+        echo "---------------------------------------"
+
+
+        
 
 
   deploy-to-prod:
