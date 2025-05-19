@@ -510,6 +510,7 @@ jobs:
         if [[ -f scan-reports/bandit.json ]]; then
           echo "Debug 2"
           while read -r finding; do
+            sev=0
             echo "Debug 3"
             severity=$(echo "$finding" | jq -r '.issue_severity // empty') || severity="UNKNOWN"
             file=$(echo "$finding" | jq -r '.filename // empty') || file="UNKNOWN"
