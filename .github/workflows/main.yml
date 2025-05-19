@@ -506,14 +506,15 @@ jobs:
         LOW=0
         score=0
         echo "Debug 1"
-        if [[ -f ./scan-reports/bandit.json ]]; then
+        cat scan-reports/bandit.json
+        if [[ -f scan-reports/bandit.json ]]; then
           echo "Debug 2"
           while read -r finding; do
             echo "Debug 3"
-            severity=$(echo "$finding" | jq -r '.issue_severity')
-            file=$(echo "$finding" | jq -r '.filename')
-            line_number=$(echo "$finding" | jq -r '.line_number')
-            issue_text=$(echo "$finding" | jq -r '.issue_text')
+            severity=$(echo "$finding" | jq -r '.issue_severity // empty') || severity="UNKNOWN"
+            file=$(echo "$finding" | jq -r '.filename // empty') || file="UNKNOWN"
+            line_number=$(echo "$finding" | jq -r '.line_number // 0') || line_number=0
+            issue_text=$(echo "$finding" | jq -r '.issue_text // "No Description"') || issue_text="(missing)"
             echo "Debug 4"
             case "$severity" in
               "HIGH") sev=3; ((HIGH++)) ;;
