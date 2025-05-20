@@ -217,16 +217,6 @@ jobs:
     if: success()
 
     steps:
-    - name: Download Semgrep SCA artifacts
-      uses: actions/download-artifact@v4
-      with:
-        name: semgrep
-        
-    - name: Download Bandit SCA artifacts
-      uses: actions/download-artifact@v4
-      with:
-        name: bandit
-
     - name: Get ZAP full results from post-deployment-pentesting job
       uses: actions/download-artifact@v4
       with:
