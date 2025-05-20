@@ -522,11 +522,25 @@ jobs:
             echo "$file"
             echo "$line_number"
             echo "$issue_text"
-            case $(echo "$severity") in
-              "HIGH") sev=3; echo "case1"; ((COUNT_HIGH++)) || echo "::error:: Failed incrementing high" ;;
-              "MEDIUM") sev=2; echo "case2"; ((COUNT_MEDIUM++)) || echo "::error:: Failed incrementing medium" ;;
-              "LOW") sev=1; echo "case3"; ((COUNT_LOW++)) || echo "::error:: Failed incrementing low" ;;
-              *) sev=0 ;;
+            case "$severity" in
+              "HIGH")
+                sev=3
+                [[ "$COUNT_HIGH" =~ ^[0-9]+$ ]] || COUNT_HIGH=0
+                ((COUNT_HIGH++))
+                ;;
+              "MEDIUM")
+                sev=2
+                [[ "$COUNT_MEDIUM" =~ ^[0-9]+$ ]] || COUNT_MEDIUM=0
+                ((COUNT_MEDIUM++))
+                ;;
+              "LOW")
+                sev=1
+                [[ "$COUNT_LOW" =~ ^[0-9]+$ ]] || COUNT_LOW=0
+                ((COUNT_LOW++))
+                ;;
+              *)
+                sev=0
+                ;;
             esac
             echo "Debug 5"
             score=$(echo "$score + $sev" | bc)
