@@ -104,7 +104,7 @@ jobs:
       run: |
         mkdir -p scan-reports
         sudo chmod -R 777 scan-reports
-        touch scan-report/urls.txt
+        touch scan-reports/urls.txt
         cat whitebox_wordlist.txt > scan-reports/urls.txt
         cat scan-reports/urls.txt
 
