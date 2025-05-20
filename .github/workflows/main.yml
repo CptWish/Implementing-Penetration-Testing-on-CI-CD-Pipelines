@@ -7,11 +7,11 @@ on:
     branches: [main]
 
 jobs:
-  call-whitebox:
+  whitebox:
     uses: ./.github/workflows/whitebox.yml
   
-  call-graybox:
+  graybox:
     uses: ./.github/workflows/graybox.yml
 
-  call-blackbox:
+  blackbox:
     uses: ./.github/workflows/blackbox.yml
