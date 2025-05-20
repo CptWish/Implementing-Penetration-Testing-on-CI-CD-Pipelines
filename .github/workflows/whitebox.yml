@@ -292,6 +292,7 @@ jobs:
         HIGH=0
         MEDIUM=0
         LOW=0
+        acceptable=1
 
         map_confidence() {
 
@@ -345,7 +346,8 @@ jobs:
           score=$(echo "$score + $scoreZapFull" | bc)
           echo "::notice:: Totals — Critical=$CRITICAL High=$HIGH Medium=$MEDIUM Low=$LOW Score=$score"
           if (( $(echo "$score > 10" | bc -l) )); then
-            echo "❌ Deployment blocked: Weighted risk score $score exceeds threshold."
+            echo "❌ Weighted risk score $score exceeds threshold."
+            acceptable=0
           else
             echo "✅ All risk checks passed. Total score: $score"
           fi
@@ -394,7 +396,8 @@ jobs:
           score=$(echo "$score + $scoreZapAPI" | bc)
           echo "::notice:: Totals — Critical=$CRITICAL High=$HIGH Medium=$MEDIUM Low=$LOW Score=$score"
           if (( $(echo "$score > 10" | bc -l) )); then
-            echo "❌ Deployment blocked: Weighted risk score $score exceeds threshold."
+            echo "❌ Weighted risk score $score exceeds threshold."
+            acceptable=0
           else
             echo "✅ All risk checks passed. Total score: $score"
           fi
@@ -466,7 +469,8 @@ jobs:
           score=$(echo "$score + $scoreNikto" | bc)
           echo "::notice:: Totals — Critical=$CRITICAL High=$HIGH Medium=$MEDIUM Low=$LOW Score=$score"
           if (( $(echo "$score > 10" | bc -l) )); then
-            echo "❌ Deployment blocked: Weighted risk score $score exceeds threshold."
+            echo "❌ Weighted risk score $score exceeds threshold."
+            acceptable=0
           else
             echo "✅ All risk checks passed. Total score: $score"
           fi
@@ -498,7 +502,12 @@ jobs:
         else
           echo "⚠️ Bandit report not found."
         fi
-
+        if (( $(echo "$score > 10" | bc -l) )); then
+          echo "❌ Weighted risk score $score exceeds threshold."
+          acceptable=0
+        else
+          echo "✅ All risk checks passed. Total score: $score"
+        fi
         echo ""
         echo "---------------------------------------"
 
@@ -544,8 +553,18 @@ jobs:
         else
           echo "⚠️ Semgrep report not found."
         fi
-
+        if (( $(echo "$score > 10" | bc -l) )); then
+          echo "❌ Weighted risk score $score exceeds threshold."
+          acceptable=0
+        else
+          echo "✅ All risk checks passed. Total score: $score"
+        fi
         echo "---------------------------------------"
+        if [[$acceptable -eq 0]]; then
+          echo "❌ Deployment blocked"
+          exit 1
+        else
+          echo "✅ All risk checks passed. Deploying..."
 
 
   deploy-to-prod:

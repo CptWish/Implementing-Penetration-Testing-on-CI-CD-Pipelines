@@ -137,19 +137,19 @@ jobs:
     - name: Upload nuclei artifact
       uses: actions/upload-artifact@v4
       with:
-        name: nuclei
+        name: nucleiGray
         path: scan-reports/nuclei.txt
 
     - name: Upload ZAP-full artifact
       uses: actions/upload-artifact@v4
       with:
-        name: zap-full
+        name: zap-full-gray
         path: zap-reports/zap-full-report.json
 
     - name: Upload ZAP-api artifact
       uses: actions/upload-artifact@v4
       with:
-        name: zap-api
+        name: zap-api-gray
         path: zap-reports/zap-api-report.json  
     
     - name: Run Nikto scans (install inside container per URL)
@@ -179,7 +179,7 @@ jobs:
     - name: Upload Nikto artifact
       uses: actions/upload-artifact@v4
       with:
-        name: nikto
+        name: niktoGray
         path: scan-reports/nikto.txt
 
     - name: Stop and remove app container
@@ -201,22 +201,22 @@ jobs:
     - name: Get ZAP full results from post-deployment-pentesting job
       uses: actions/download-artifact@v4
       with:
-        name: zap-full
+        name: zap-full-gray
 
     - name: Get ZAP API results from post-deployment-pentesting job
       uses: actions/download-artifact@v4
       with:
-        name: zap-api
+        name: zap-api-gray
 
     - name: Get Nuclei results from post-deployment-pentesting job
       uses: actions/download-artifact@v4
       with:
-        name: nuclei
+        name: nucleiGray
 
     - name: Get Nikto results
       uses: actions/download-artifact@v4
       with:
-        name: nikto
+        name: niktoGray
 
     - name: Move artifacts to scan-reports directory
       run: |
@@ -240,6 +240,8 @@ jobs:
         HIGH=0
         MEDIUM=0
         LOW=0
+        acceptable=1
+
 
         map_confidence() {
 
@@ -293,7 +295,8 @@ jobs:
           score=$(echo "$score + $scoreZapFull" | bc)
           echo "::notice:: Totals — Critical=$CRITICAL High=$HIGH Medium=$MEDIUM Low=$LOW Score=$score"
           if (( $(echo "$score > 10" | bc -l) )); then
-            echo "❌ Deployment blocked: Weighted risk score $score exceeds threshold."
+            echo "❌ Weighted risk score $score exceeds threshold."
+            acceptable=0
           else
             echo "✅ All risk checks passed. Total score: $score"
           fi
@@ -342,7 +345,8 @@ jobs:
           score=$(echo "$score + $scoreZapAPI" | bc)
           echo "::notice:: Totals — Critical=$CRITICAL High=$HIGH Medium=$MEDIUM Low=$LOW Score=$score"
           if (( $(echo "$score > 10" | bc -l) )); then
-            echo "❌ Deployment blocked: Weighted risk score $score exceeds threshold."
+            echo "❌ Weighted risk score $score exceeds threshold."
+            acceptable=0
           else
             echo "✅ All risk checks passed. Total score: $score"
           fi
@@ -414,13 +418,18 @@ jobs:
           score=$(echo "$score + $scoreNikto" | bc)
           echo "::notice:: Totals — Critical=$CRITICAL High=$HIGH Medium=$MEDIUM Low=$LOW Score=$score"
           if (( $(echo "$score > 10" | bc -l) )); then
-            echo "❌ Deployment blocked: Weighted risk score $score exceeds threshold."
+            echo "❌ Weighted risk score $score exceeds threshold."
+            acceptable=0
           else
             echo "✅ All risk checks passed. Total score: $score"
           fi
         fi
         echo "---------------------------------------"
-
+        if [[$acceptable -eq 0]]; then
+          echo "❌ Deployment blocked"
+          exit 1
+        else
+          echo "✅ All risk checks passed. Deploying..."
 
   deploy-to-prod:
     runs-on: ubuntu-latest

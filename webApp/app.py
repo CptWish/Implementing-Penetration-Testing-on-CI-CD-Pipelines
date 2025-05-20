@@ -27,11 +27,7 @@ def home():
     return '''
         <h1>Welcome to the simple web app!</h1>
         <ul>
-            <li><a href="/ping?host=127.0.0.1">Ping</a></li>
-            <li><a href="/admin">Admin</a></li>
-            <li><a href="/purchase">Purchase</a></li>
-            <li><a href="/order/1001">Order 1001</a></li>
-            <li><a href="/search?q=test">Search</a></li>
+            <h1>This website has lots of vulnerabilities!</h1>
         </ul>
     '''
 
