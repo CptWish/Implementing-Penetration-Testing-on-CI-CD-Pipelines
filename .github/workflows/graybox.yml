@@ -63,7 +63,7 @@ jobs:
         mkdir -p scan-reports
         sudo chmod -R 777 scan-reports
         touch scan-reports/urls.txt
-        sed 's|^|http://pentest-target:5000/|' whitebox_wordlist.txt > scan-reports/urls.txt
+        sed 's|^|http://pentest-target:5000|' whitebox_wordlist.txt > scan-reports/urls.txt
         cat scan-reports/urls.txt
 
     - name: Run nuclei scan (in Docker)
