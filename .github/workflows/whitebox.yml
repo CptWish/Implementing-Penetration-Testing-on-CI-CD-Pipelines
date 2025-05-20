@@ -102,7 +102,7 @@ jobs:
 
     - name: Creating the wordlist
       run: |
-        mkdir scan-report/urls.txt
+        touch scan-report/urls.txt
         cat whitebox_wordlist.txt > scan-reports/urls.txt
         cat scan-reports/urls.txt
 
