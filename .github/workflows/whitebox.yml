@@ -29,10 +29,6 @@ jobs:
       run: |
         cd webApp
         pytest
-    
-    - name: test
-      run: |
-        cat whitebox_wordlist.txt
 
   Static-Code-Analysis:
     runs-on: ubuntu-latest
@@ -111,21 +107,8 @@ jobs:
       run: |
         mkdir -p ${{ github.workspace }}/wordlists
         curl -sSL https://raw.githubusercontent.com/danielmiessler/SecLists/refs/heads/master/Discovery/Web-Content/directory-list-2.3-small.txt -o ${{ github.workspace }}/wordlists/fuzzlist.txt
-    
-    - name: Run directory fuzzing with ffuf (Docker)
-      run: |
-        docker run --rm --network zapnet \
-        -v ${{ github.workspace }}/wordlists:/wordlists \
-        -v ${{ github.workspace }}/scan-reports:/ffuf/output \
-        secsi/ffuf \
-        -u http://pentest-target:5000/FUZZ \
-        -w /wordlists/fuzzlist.txt \
-        -mc 200,302 \
-        -s \
-        -o /ffuf/output/ffuf.json \
-        -of json || true
-
-    - name: Extract paths from ffuf output (cleaned)
+  
+    - name: Creating the wordlist
       run: |
         sudo chmod -R 777 scan-reports
         echo "http://pentest-target:5000/" > scan-reports/urls.txt
