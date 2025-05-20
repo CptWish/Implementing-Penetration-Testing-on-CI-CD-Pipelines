@@ -501,15 +501,14 @@ jobs:
         # echo "---------------------------------------"
 
         echo "🔍 Bandit Findings (evaluated per issue)..."
-
+        COUNT_HIGH=0
+        COUNT_MEDIUM=0
+        COUNT_LOW=0
+        score=0
         echo "Debug 1"
         cat scan-reports/bandit.json
         if [[ -f scan-reports/bandit.json ]]; then
           echo "Debug 2"
-          COUNT_HIGH=0
-          COUNT_MEDIUM=0
-          COUNT_LOW=0
-          score=0
           while read -r finding; do
             sev=0
             echo "Debug 3"
@@ -522,25 +521,11 @@ jobs:
             echo "$file"
             echo "$line_number"
             echo "$issue_text"
-            case "$severity" in
-              "HIGH")
-                sev=3
-                [[ "$COUNT_HIGH" =~ ^[0-9]+$ ]] || COUNT_HIGH=0
-                ((COUNT_HIGH++))
-                ;;
-              "MEDIUM")
-                sev=2
-                [[ "$COUNT_MEDIUM" =~ ^[0-9]+$ ]] || COUNT_MEDIUM=0
-                ((COUNT_MEDIUM++))
-                ;;
-              "LOW")
-                sev=1
-                [[ "$COUNT_LOW" =~ ^[0-9]+$ ]] || COUNT_LOW=0
-                ((COUNT_LOW++))
-                ;;
-              *)
-                sev=0
-                ;;
+            case $(echo "$severity") in
+              "HIGH") sev=3; echo "case1"; ((COUNT_HIGH++)) || echo "::error:: Failed incrementing high" ;;
+              "MEDIUM") sev=2; echo "case2"; ((COUNT_MEDIUM++)) || echo "::error:: Failed incrementing medium" ;;
+              "LOW") sev=1; echo "case3"; ((COUNT_LOW++)) || echo "::error:: Failed incrementing low" ;;
+              *) sev=0 ;;
             esac
             echo "Debug 5"
             score=$(echo "$score + $sev" | bc)
