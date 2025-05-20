@@ -565,6 +565,7 @@ jobs:
           exit 1
         else
           echo "✅ All risk checks passed. Deploying..."
+        fi
 
 
   deploy-to-prod:

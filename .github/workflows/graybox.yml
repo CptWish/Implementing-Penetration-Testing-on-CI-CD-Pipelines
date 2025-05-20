@@ -221,8 +221,6 @@ jobs:
     - name: Move artifacts to scan-reports directory
       run: |
         mkdir scan-reports
-        mv semgrep.json scan-reports/
-        mv bandit.json scan-reports/
         mv nuclei.txt scan-reports/
         mkdir zap-reports
         mv zap-api-report.json zap-reports/
@@ -430,6 +428,7 @@ jobs:
           exit 1
         else
           echo "✅ All risk checks passed. Deploying..."
+        fi
 
   deploy-to-prod:
     runs-on: ubuntu-latest
