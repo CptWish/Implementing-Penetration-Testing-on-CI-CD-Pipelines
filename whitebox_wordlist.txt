@@ -1,6 +1,7 @@
 /
 /admin
 /purchase
+/custom-path-with-xss
 /order
 /order/1001
 /ping
