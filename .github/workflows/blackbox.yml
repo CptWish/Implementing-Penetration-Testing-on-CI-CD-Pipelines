@@ -26,6 +26,9 @@ jobs:
       run: |
         cd webApp
         pytest
+
+        cat zap_report_cleaner.py
+
   
   
   post-deployment-pentesting:
