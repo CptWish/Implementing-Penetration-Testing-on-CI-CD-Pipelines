@@ -512,9 +512,9 @@ jobs:
         echo "---------------------------------------"
 
         echo "📊 Semgrep Findings (evaluated per issue)..."
-        COUNT_HIGH=$(jq '[.results[] | select(.issue_severity == "HIGH")] | length' scan-reports/semgrep.json)
-        COUNT_MEDIUM=$(jq '[.results[] | select(.issue_severity == "MEDIUM")] | length' scan-reports/semgrep.json)
-        COUNT_LOW=$(jq '[.results[] | select(.issue_severity == "LOW")] | length' scan-reports/semgrep.json)
+        COUNT_HIGH=$(jq '[.results[] | select(.issue_severity == "ERROR")] | length' scan-reports/semgrep.json)
+        COUNT_MEDIUM=$(jq '[.results[] | select(.issue_severity == "WARNING")] | length' scan-reports/semgrep.json)
+        COUNT_LOW=$(jq '[.results[] | select(.issue_severity == "INFO")] | length' scan-reports/semgrep.json)
         score=0
 
         map_confidence_semgrep() {
