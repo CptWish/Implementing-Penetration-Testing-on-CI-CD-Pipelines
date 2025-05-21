@@ -311,19 +311,8 @@ jobs:
         INPUT="zap-full-report.json"
         OUTPUT="zap-full-report-modified.json"
 
-        jq '
-          .site |= map(
-            .alerts |= (
-              [
-                .[] | {
-                  alert, url, param, evidence, other: 
-                }
-              ]
-              | unique_by([.alert, .url, .param, .evidence])
-              | map(.other)
-            )
-          )
-        ' "$INPUT" > "$OUTPUT"
+        jq '.site |= map(.alerts |= ([.[] as $a | {alert: $a.alert, url: $a.url, param: ($a.param // ""), evidence: ($a.evidence // ""), full: $a}] | unique_by([.alert, .url, .param, .evidence]) | map(.full)))' zap-report.json > zap-report-deduped.json
+
 
         jq -c '.site[].alerts[]' zap-reports/zap-full-report-modified.json | {
           while read -r alert; do
