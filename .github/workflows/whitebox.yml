@@ -283,7 +283,7 @@ jobs:
         touch scoreZapFull.txt
         touch scoreZapAPI.txt
         chmod 777 zap-reports
-        touch zap-reports/zap-reports/zap-full-report-modified.json
+        touch zap-reports/zap-full-report-modified.json
 
 
     - name: Evaluate vulnerabilities
