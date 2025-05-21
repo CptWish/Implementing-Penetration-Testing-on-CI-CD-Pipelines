@@ -308,7 +308,24 @@ jobs:
         echo ""
         echo "---------------------------------------"
         echo "📊 Parsing ZAP Full Scan..."
-        jq -c '.site[].alerts[]' zap-reports/zap-full-report.json | {
+        INPUT="zap-full-report.json"
+        OUTPUT="zap-full-report-modified.json"
+
+        jq '
+          .site |= map(
+            .alerts |= (
+              [
+                .[] | {
+                  alert, url, param, evidence, other: 
+                }
+              ]
+              | unique_by([.alert, .url, .param, .evidence])
+              | map(.other)
+            )
+          )
+        ' "$INPUT" > "$OUTPUT"
+
+        jq -c '.site[].alerts[]' zap-reports/zap-full-report-modified.json | {
           while read -r alert; do
             name=$(echo "$alert" | jq -r '.alert')
             riskcode=$(echo "$alert" | jq -r '.riskcode')
