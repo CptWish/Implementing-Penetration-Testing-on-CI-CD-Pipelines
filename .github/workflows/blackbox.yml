@@ -117,22 +117,6 @@ jobs:
       run: |
         mkdir -p zap-reports/temp
         echo '{"site":[]}' > zap-reports/zap-full-report.json
-        INPUT="zap-full-report.json"
-        OUTPUT="zap-full-report-modified.json"
-
-        jq '
-          .site |= map(
-            .alerts |= (
-              [
-                .[] | {
-                  alert, url, param, evidence, other: 
-                }
-              ]
-              | unique_by([.alert, .url, .param, .evidence])
-              | map(.other)
-            )
-          )
-        ' "$INPUT" > "$OUTPUT"
         while IFS= read -r url; do
           echo "🔍 Scanning $url with ZAP Full Scan..."
           HASH=$(echo $url | md5sum | cut -d' ' -f1)
@@ -288,7 +272,23 @@ jobs:
         echo ""
         echo "---------------------------------------"
         echo "📊 Parsing ZAP Full Scan..."
-        jq -c '.site[].alerts[]' zap-reports/zap-full-report.json | {
+        INPUT="zap-full-report.json"
+        OUTPUT="zap-full-report-modified.json"
+
+        jq '
+          .site |= map(
+            .alerts |= (
+              [
+                .[] | {
+                  alert, url, param, evidence, other: 
+                }
+              ]
+              | unique_by([.alert, .url, .param, .evidence])
+              | map(.other)
+            )
+          )
+        ' "$INPUT" > "$OUTPUT"
+        jq -c '.site[].alerts[]' zap-reports/zap-full-report-modified.json | {
           while read -r alert; do
             name=$(echo "$alert" | jq -r '.alert')
             riskcode=$(echo "$alert" | jq -r '.riskcode')
