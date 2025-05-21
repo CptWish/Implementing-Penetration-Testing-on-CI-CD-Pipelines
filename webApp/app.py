@@ -75,13 +75,6 @@ def home():
                 </form>
             </div>
 
-            <div class="section">
-                <h2>View Order</h2>
-                <form method="GET" onsubmit="redirectToOrder(event)">
-                    <input class="form-control" id="orderIdInput" placeholder="Enter Order ID (e.g., 1001)" />
-                    <button class="btn btn-info mt-2" type="submit">View Order</button>
-                </form>
-            </div>
 
         </div>
 
@@ -142,7 +135,11 @@ def admin():
     </body>
     </html>
     '''
-
+@app.route('/custom-path-with-xss')
+def custom():
+    query = request.args.get('q', '')
+    # ⚠️ Vulnerability: Reflected Cross-Site Scripting (CWE-79)
+    return render_template_string(f"<div>Search results for: {query}</div>")
 
 @app.route('/api/data', methods=['GET'])
 def api_data():
