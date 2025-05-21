@@ -135,6 +135,7 @@ def admin():
     </body>
     </html>
     '''
+    
 @app.route('/custom-path-with-xss')
 def custom():
     query = request.args.get('q', '')
