@@ -282,6 +282,8 @@ jobs:
         mv nikto.txt scan-reports/
         touch scoreZapFull.txt
         touch scoreZapAPI.txt
+        chmod 777 zap-reports
+        touch zap-reports/zap-reports/zap-full-report-modified.json
 
 
     - name: Evaluate vulnerabilities
@@ -308,8 +310,10 @@ jobs:
         echo ""
         echo "---------------------------------------"
         echo "📊 Parsing ZAP Full Scan..."
-        INPUT="zap-full-report.json"
-        OUTPUT="zap-full-report-modified.json"
+        
+        INPUT="zap-reports/zap-full-report.json"
+        OUTPUT="zap-reports/zap-full-report-modified.json"
+
 
         jq '.site |= map(.alerts |= ([.[] as $a | {alert: $a.alert, url: $a.url, param: ($a.param // ""), evidence: ($a.evidence // ""), full: $a}] | unique_by([.alert, .url, .param, .evidence]) | map(.full)))' zap-report.json > zap-report-deduped.json
 
