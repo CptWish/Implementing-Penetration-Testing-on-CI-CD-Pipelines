@@ -260,121 +260,22 @@ jobs:
         LOW=0
         acceptable=1
 
-        map_confidence() {
-
-          case "$1" in
-            "0") echo "0.0" ;;
-            "1") echo "0.5" ;;
-            "2") echo "0.8" ;;
-            "3") echo "1.0" ;;
-            *) echo "0.0" ;;
-          esac
-        }
-
         echo ""
         echo "---------------------------------------"
         echo "📊 Parsing ZAP Full Scan..."
+        
+        python zap_report_cleaner.py zap-reports/zap-full-report.json --output zap-full-clean.json --summary zap-full-summary.md --details full-details.md
+        
+        cat full-details.md
 
-        INPUT="zap-reports/zap-full-report.json"
-        OUTPUT="zap-reports/zap-full-report-modified.json"
-
-        jq '.site |= map(.alerts |= ([.[] as $a | {alert: $a.alert, url: $a.url, param: ($a.param // ""), evidence: ($a.evidence // ""), full: $a}] | unique_by([.alert, .url, .param, .evidence]) | map(.full)))' zap-full-report.json > zap-full-report-modified.json
-
-        jq -c '.site[].alerts[]' zap-reports/zap-full-report-modified.json | {
-          while read -r alert; do
-            name=$(echo "$alert" | jq -r '.alert')
-            riskcode=$(echo "$alert" | jq -r '.riskcode')
-            confidence=$(echo "$alert" | jq -r '.confidence')
-            url=$(echo "$alert" | jq -r '.instances[0].uri')
-  
-            echo "Alert: $name"
-            echo "Risk: $riskcode"
-            echo "Confidence: $confidence"
-            echo "URL: $url"
-  
-            case "$riskcode" in
-              3) sev=5; ((CRITICAL++)) ;;
-              2) sev=3; ((HIGH++)) ;;
-              1) sev=2; ((MEDIUM++)) ;;
-              0) sev=1; ((LOW++)) ;;
-              *) sev=0; ;;
-            esac
-  
-            coef=$(map_confidence "$confidence")
-            vuln_score=$(echo "$sev * $coef" | bc)
-            score=$(echo "$score + $vuln_score" | bc)
-  
-            echo "- [ZAP Full] $name @ $url | severity=$sev confidence=$confidence -> $vuln_score"
-  
-            echo "----------------------"
-          done
-          echo "$score" > scoreZapFull.txt
-          printf "Critical: $CRITICAL \n" >> zapFullList.txt
-          printf "High: $HIGH \n" >> zapFullList.txt
-          printf "Medium: $MEDIUM \n" >> zapFullList.txt
-          printf "Low: $LOW \n" >> zapFullList.txt
-
-          scoreZapFull=$(cat scoreZapFull.txt)
-          score=$(echo "$score + $scoreZapFull" | bc)
-          echo "::notice:: Totals — Critical=$CRITICAL High=$HIGH Medium=$MEDIUM Low=$LOW Score=$score"
-          if (( $(echo "$score > 10" | bc -l) )); then
-            echo "❌ Weighted risk score $score exceeds threshold."
-            acceptable=0
-          else
-            echo "✅ All risk checks passed. Total score: $score"
-          fi
-
-    
-        } || true
         echo "---------------------------------------"
-
+      
         echo ""
         echo "---------------------------------------"
         echo "📊 Parsing ZAP API Scan..."
-        jq -c '.site[].alerts[]' zap-reports/zap-api-report.json | {
-          while read -r alert; do
-            name=$(echo "$alert" | jq -r '.alert')
-            riskcode=$(echo "$alert" | jq -r '.riskcode')
-            confidence=$(echo "$alert" | jq -r '.confidence')
-            url=$(echo "$alert" | jq -r '.instances[0].uri')
-  
-            echo "Alert: $name"
-            echo "Risk: $riskcode"
-            echo "Confidence: $confidence"
-            echo "URL: $url"
-  
-            case "$riskcode" in
-              3) sev=5; ((CRITICAL++)) ;;
-              2) sev=3; ((HIGH++)) ;;
-              1) sev=2; ((MEDIUM++)) ;;
-              0) sev=1; ((LOW++)) ;;
-              *) sev=0; ;;
-            esac
-  
-            coef=$(map_confidence "$confidence")
-            vuln_score=$(echo "$sev * $coef" | bc)
-            score=$(echo "$score + $vuln_score" | bc)
-  
-            echo "- [ZAP API] $name @ $url | severity=$sev confidence=$confidence -> $vuln_score"
-            echo "----------------------"
-          done
-          echo "$score" > scoreZapAPI.txt
-          printf "Critical: $CRITICAL \n" >> zapAPIList.txt
-          printf "High: $HIGH \n" >> zapAPIList.txt
-          printf "Medium: $MEDIUM \n" >> zapAPIList.txt
-          printf "Low: $LOW \n" >> zapAPIList.txt
 
-          scoreZapAPI=$(cat scoreZapAPI.txt)
-          score=$(echo "$score + $scoreZapAPI" | bc)
-          echo "::notice:: Totals — Critical=$CRITICAL High=$HIGH Medium=$MEDIUM Low=$LOW Score=$score"
-          if (( $(echo "$score > 10" | bc -l) )); then
-            echo "❌ Weighted risk score $score exceeds threshold."
-            acceptable=0
-          else
-            echo "✅ All risk checks passed. Total score: $score"
-          fi
-        } || true
-      
+        python zap_report_cleaner.py zap-reports/zap-api-report.json --output zap-api-clean.json --summary zap-api-summary.md --details api-details.md
+        cat api-details.md  
 
         echo ""
         echo "---------------------------------------"
