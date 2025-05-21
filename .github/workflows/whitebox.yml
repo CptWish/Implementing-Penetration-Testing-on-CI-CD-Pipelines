@@ -315,7 +315,7 @@ jobs:
         OUTPUT="zap-reports/zap-full-report-modified.json"
 
 
-        jq '.site |= map(.alerts |= ([.[] as $a | {alert: $a.alert, url: $a.url, param: ($a.param // ""), evidence: ($a.evidence // ""), full: $a}] | unique_by([.alert, .url, .param, .evidence]) | map(.full)))' zap-report.json > zap-report-modified.json
+        jq '.site |= map(.alerts |= ([.[] as $a | {alert: $a.alert, url: $a.url, param: ($a.param // ""), evidence: ($a.evidence // ""), full: $a}] | unique_by([.alert, .url, .param, .evidence]) | map(.full)))' zap-full-report.json > zap-full-report-modified.json
 
 
         jq -c '.site[].alerts[]' zap-reports/zap-full-report-modified.json | {
