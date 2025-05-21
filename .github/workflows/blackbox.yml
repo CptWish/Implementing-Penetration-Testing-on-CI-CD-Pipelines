@@ -27,7 +27,7 @@ jobs:
         cd webApp
         pytest
 
-        cat zap_report_cleaner.py
+        cat ../zap_report_cleaner.py
 
   
   
