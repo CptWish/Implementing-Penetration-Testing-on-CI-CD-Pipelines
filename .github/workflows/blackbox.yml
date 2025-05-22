@@ -263,7 +263,9 @@ jobs:
         LOW=0
         acceptable=1
 
-        ls -al
+        ls -al ..
+        echo "sonra"
+        ls -al ../../
 
         echo ""
         echo "---------------------------------------"
