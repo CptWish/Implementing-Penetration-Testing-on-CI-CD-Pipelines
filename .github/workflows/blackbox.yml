@@ -31,187 +31,187 @@ jobs:
 
   
   
-  post-deployment-pentesting:
-    runs-on: ubuntu-latest
-    needs: build-test
+  # post-deployment-pentesting:
+  #   runs-on: ubuntu-latest
+  #   needs: build-test
 
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v3
+  #   steps:
+  #   - name: Checkout code
+  #     uses: actions/checkout@v3
 
-    - name: Set up Python
-      uses: actions/setup-python@v4
-      with:
-        python-version: '3.10'
+  #   - name: Set up Python
+  #     uses: actions/setup-python@v4
+  #     with:
+  #       python-version: '3.10'
 
-    - name: Install Docker dependencies and build image
-      run: |
-        cd webApp
-        docker build -t flask-webapp .
+  #   - name: Install Docker dependencies and build image
+  #     run: |
+  #       cd webApp
+  #       docker build -t flask-webapp .
 
-    - name: Create Docker network
-      run: docker network create zapnet
+  #   - name: Create Docker network
+  #     run: docker network create zapnet
 
-    - name: Run Flask app container
-      run: |
-        docker run --network zapnet -d --name pentest-target flask-webapp
-        sleep 10
+  #   - name: Run Flask app container
+  #     run: |
+  #       docker run --network zapnet -d --name pentest-target flask-webapp
+  #       sleep 10
 
-    - name: Confirm Flask app is reachable inside zapnet
-      run: |
-        docker run --rm --network zapnet curlimages/curl curl -s http://pentest-target:5000 || (echo "App not reachable!" && exit 1)
+  #   - name: Confirm Flask app is reachable inside zapnet
+  #     run: |
+  #       docker run --rm --network zapnet curlimages/curl curl -s http://pentest-target:5000 || (echo "App not reachable!" && exit 1)
 
-    - name: Install SecLists Wordlist
-      run: |
-        mkdir -p ${{ github.workspace }}/wordlists
-        curl -sSL https://raw.githubusercontent.com/danielmiessler/SecLists/refs/heads/master/Discovery/Web-Content/directory-list-2.3-small.txt -o ${{ github.workspace }}/wordlists/fuzzlist.txt
+  #   - name: Install SecLists Wordlist
+  #     run: |
+  #       mkdir -p ${{ github.workspace }}/wordlists
+  #       curl -sSL https://raw.githubusercontent.com/danielmiessler/SecLists/refs/heads/master/Discovery/Web-Content/directory-list-2.3-small.txt -o ${{ github.workspace }}/wordlists/fuzzlist.txt
     
-    - name: Run directory fuzzing with ffuf (Docker)
-      run: |
-        docker run --rm --network zapnet \
-        -v ${{ github.workspace }}/wordlists:/wordlists \
-        -v ${{ github.workspace }}/scan-reports:/ffuf/output \
-        secsi/ffuf \
-        -u http://pentest-target:5000/FUZZ \
-        -w /wordlists/fuzzlist.txt \
-        -mc 200,302 \
-        -s \
-        -o /ffuf/output/ffuf.json \
-        -of json || true
+  #   - name: Run directory fuzzing with ffuf (Docker)
+  #     run: |
+  #       docker run --rm --network zapnet \
+  #       -v ${{ github.workspace }}/wordlists:/wordlists \
+  #       -v ${{ github.workspace }}/scan-reports:/ffuf/output \
+  #       secsi/ffuf \
+  #       -u http://pentest-target:5000/FUZZ \
+  #       -w /wordlists/fuzzlist.txt \
+  #       -mc 200,302 \
+  #       -s \
+  #       -o /ffuf/output/ffuf.json \
+  #       -of json || true
 
-    - name: Extract paths from ffuf output (cleaned)
-      run: |
-        sudo chmod -R 777 scan-reports
-        echo "http://pentest-target:5000/" > scan-reports/urls.txt
-        jq -r '.results[].input | "http://pentest-target:5000/" + .FUZZ' scan-reports/ffuf.json > scan-reports/urls_unmodified.txt
-        sed -i '/#/d' scan-reports/urls_unmodified.txt
-        sort scan-reports/urls_unmodified.txt | uniq > scan-reports/urls.txt
-        cat scan-reports/urls.txt
+  #   - name: Extract paths from ffuf output (cleaned)
+  #     run: |
+  #       sudo chmod -R 777 scan-reports
+  #       echo "http://pentest-target:5000/" > scan-reports/urls.txt
+  #       jq -r '.results[].input | "http://pentest-target:5000/" + .FUZZ' scan-reports/ffuf.json > scan-reports/urls_unmodified.txt
+  #       sed -i '/#/d' scan-reports/urls_unmodified.txt
+  #       sort scan-reports/urls_unmodified.txt | uniq > scan-reports/urls.txt
+  #       cat scan-reports/urls.txt
 
-    - name: Run nuclei scan (in Docker)
-      run: |
-        mkdir -p scan-reports/nuclei-individual
-        while IFS= read -r url; do
-          echo " "
-          echo " "
-          echo "🔍 Scanning $url with Nuclei..."
-          docker run --rm --network zapnet \
-            -v ${{ github.workspace }}/scan-reports:/output \
-            projectdiscovery/nuclei:latest \
-            -u "$url" \
-            -severity critical,high,medium,low,info \
-            -c 100 \
-            -o "/output/nuclei-individual/$(echo $url | md5sum | cut -d' ' -f1).txt" || true
-        done < scan-reports/urls.txt
+  #   - name: Run nuclei scan (in Docker)
+  #     run: |
+  #       mkdir -p scan-reports/nuclei-individual
+  #       while IFS= read -r url; do
+  #         echo " "
+  #         echo " "
+  #         echo "🔍 Scanning $url with Nuclei..."
+  #         docker run --rm --network zapnet \
+  #           -v ${{ github.workspace }}/scan-reports:/output \
+  #           projectdiscovery/nuclei:latest \
+  #           -u "$url" \
+  #           -severity critical,high,medium,low,info \
+  #           -c 100 \
+  #           -o "/output/nuclei-individual/$(echo $url | md5sum | cut -d' ' -f1).txt" || true
+  #       done < scan-reports/urls.txt
 
 
-    - name: Merge Nuclei individual reports
-      run: |
-        mkdir -p scan-reports
-        echo "🔗 Merging Nuclei individual reports into scan-reports/nuclei.txt"
-        cat scan-reports/nuclei-individual/*.txt > scan-reports/nuclei.txt || echo "No individual reports found."    
+  #   - name: Merge Nuclei individual reports
+  #     run: |
+  #       mkdir -p scan-reports
+  #       echo "🔗 Merging Nuclei individual reports into scan-reports/nuclei.txt"
+  #       cat scan-reports/nuclei-individual/*.txt > scan-reports/nuclei.txt || echo "No individual reports found."    
 
-    - name: Prepare ZAP report directory
-      run: |
-        mkdir -p zap-reports
-        sudo chmod -R 777 zap-reports
+  #   - name: Prepare ZAP report directory
+  #     run: |
+  #       mkdir -p zap-reports
+  #       sudo chmod -R 777 zap-reports
 
-    - name: Run ZAP Full Scan (Crawl + Attack)
-      run: |
-        mkdir -p zap-reports/temp
-        echo '{"site":[]}' > zap-reports/zap-full-report.json
-        while IFS= read -r url; do
-          echo "🔍 Scanning $url with ZAP Full Scan..."
-          HASH=$(echo $url | md5sum | cut -d' ' -f1)
-          JSON_FILE="zap-full-report-$HASH.json"
-          HTML_FILE="zap-full-report-$HASH.html"
+  #   - name: Run ZAP Full Scan (Crawl + Attack)
+  #     run: |
+  #       mkdir -p zap-reports/temp
+  #       echo '{"site":[]}' > zap-reports/zap-full-report.json
+  #       while IFS= read -r url; do
+  #         echo "🔍 Scanning $url with ZAP Full Scan..."
+  #         HASH=$(echo $url | md5sum | cut -d' ' -f1)
+  #         JSON_FILE="zap-full-report-$HASH.json"
+  #         HTML_FILE="zap-full-report-$HASH.html"
 
-          docker run --rm --network zapnet \
-            -v ${{ github.workspace }}/zap-reports:/zap/wrk \
-            -t ghcr.io/zaproxy/zaproxy:stable zap-full-scan.py \
-            -t "$url" \
-            -J "$JSON_FILE" \
-            -r "$HTML_FILE" || true
-        done < scan-reports/urls.txt
+  #         docker run --rm --network zapnet \
+  #           -v ${{ github.workspace }}/zap-reports:/zap/wrk \
+  #           -t ghcr.io/zaproxy/zaproxy:stable zap-full-scan.py \
+  #           -t "$url" \
+  #           -J "$JSON_FILE" \
+  #           -r "$HTML_FILE" || true
+  #       done < scan-reports/urls.txt
   
-    - name: Merge ZAP Full Scan reports
-      run: |
-        echo '{"site": []}' > zap-reports/zap-full-report.json
-        for f in zap-reports/zap-full-report-*.json; do
-          if [ -f "$f" ]; then
-            jq -s '.[0].site + .[1].site | {site: .}' "$f" zap-reports/zap-full-report.json > zap-reports/tmp.json && mv zap-reports/tmp.json zap-reports/zap-full-report.json
-          fi
-        done
+  #   - name: Merge ZAP Full Scan reports
+  #     run: |
+  #       echo '{"site": []}' > zap-reports/zap-full-report.json
+  #       for f in zap-reports/zap-full-report-*.json; do
+  #         if [ -f "$f" ]; then
+  #           jq -s '.[0].site + .[1].site | {site: .}' "$f" zap-reports/zap-full-report.json > zap-reports/tmp.json && mv zap-reports/tmp.json zap-reports/zap-full-report.json
+  #         fi
+  #       done
 
 
-    - name: Run ZAP API Scan
-      run: |
-        docker run --rm --network zapnet \
-          -v ${{ github.workspace }}/zap-reports:/zap/wrk \
-          -t ghcr.io/zaproxy/zaproxy:stable zap-api-scan.py \
-          -t http://pentest-target:5000/openapi.json \
-          -f openapi \
-          -d \
-          -a \
-          -J zap-api-report.json -r zap-api-report.html || true
+  #   - name: Run ZAP API Scan
+  #     run: |
+  #       docker run --rm --network zapnet \
+  #         -v ${{ github.workspace }}/zap-reports:/zap/wrk \
+  #         -t ghcr.io/zaproxy/zaproxy:stable zap-api-scan.py \
+  #         -t http://pentest-target:5000/openapi.json \
+  #         -f openapi \
+  #         -d \
+  #         -a \
+  #         -J zap-api-report.json -r zap-api-report.html || true
 
-    - name: Upload nuclei artifact
-      uses: actions/upload-artifact@v4
-      with:
-        name: nucleiBlack
-        path: scan-reports/nuclei.txt
+  #   - name: Upload nuclei artifact
+  #     uses: actions/upload-artifact@v4
+  #     with:
+  #       name: nucleiBlack
+  #       path: scan-reports/nuclei.txt
 
-    - name: Upload ZAP-full artifact
-      uses: actions/upload-artifact@v4
-      with:
-        name: zap-full-black
-        path: zap-reports/zap-full-report.json
+  #   - name: Upload ZAP-full artifact
+  #     uses: actions/upload-artifact@v4
+  #     with:
+  #       name: zap-full-black
+  #       path: zap-reports/zap-full-report.json
 
-    - name: Upload ZAP-api artifact
-      uses: actions/upload-artifact@v4
-      with:
-        name: zap-api-black
-        path: zap-reports/zap-api-report.json  
+  #   - name: Upload ZAP-api artifact
+  #     uses: actions/upload-artifact@v4
+  #     with:
+  #       name: zap-api-black
+  #       path: zap-reports/zap-api-report.json  
     
-    - name: Run Nikto scans (install inside container per URL)
-      run: |
-        mkdir -p scan-reports/nikto-individual
-        while IFS= read -r url; do
-          echo "🔍 Scanning $url with Nikto..."
-          HASH=$(echo "$url" | md5sum | cut -d' ' -f1)
+  #   - name: Run Nikto scans (install inside container per URL)
+  #     run: |
+  #       mkdir -p scan-reports/nikto-individual
+  #       while IFS= read -r url; do
+  #         echo "🔍 Scanning $url with Nikto..."
+  #         HASH=$(echo "$url" | md5sum | cut -d' ' -f1)
 
-          docker run --rm --network zapnet \
-            -v "${{ github.workspace }}/scan-reports:/results" \
-            debian:bullseye-slim /bin/bash -c "\
-              apt-get update && \
-              apt-get install -y perl git libnet-ssleay-perl openssl libwhisker2-perl libnet-libidn-perl liburi-perl && \
-              git clone https://github.com/sullo/nikto.git /nikto && \
-              perl /nikto/program/nikto.pl -host '$url' -output '/results/nikto-individual/$HASH.txt'" || true
-        done < scan-reports/urls.txt
+  #         docker run --rm --network zapnet \
+  #           -v "${{ github.workspace }}/scan-reports:/results" \
+  #           debian:bullseye-slim /bin/bash -c "\
+  #             apt-get update && \
+  #             apt-get install -y perl git libnet-ssleay-perl openssl libwhisker2-perl libnet-libidn-perl liburi-perl && \
+  #             git clone https://github.com/sullo/nikto.git /nikto && \
+  #             perl /nikto/program/nikto.pl -host '$url' -output '/results/nikto-individual/$HASH.txt'" || true
+  #       done < scan-reports/urls.txt
         
 
-    - name: Merge Nikto individual reports
-      run: |
-        mkdir -p scan-reports
-        echo "🔗 Merging Nikto individual reports into scan-reports/nikto.txt"
-        cat scan-reports/nikto-individual/*.txt > scan-reports/nikto.txt || echo "No Nikto reports found."
-        cat scan-reports/nikto.txt
+  #   - name: Merge Nikto individual reports
+  #     run: |
+  #       mkdir -p scan-reports
+  #       echo "🔗 Merging Nikto individual reports into scan-reports/nikto.txt"
+  #       cat scan-reports/nikto-individual/*.txt > scan-reports/nikto.txt || echo "No Nikto reports found."
+  #       cat scan-reports/nikto.txt
     
-    - name: Upload Nikto artifact
-      uses: actions/upload-artifact@v4
-      with:
-        name: niktoBlack
-        path: scan-reports/nikto.txt
+  #   - name: Upload Nikto artifact
+  #     uses: actions/upload-artifact@v4
+  #     with:
+  #       name: niktoBlack
+  #       path: scan-reports/nikto.txt
 
-    - name: Stop and remove app container
-      if: always()
-      run: |
-        docker stop pentest-target
-        docker rm pentest-target
+  #   - name: Stop and remove app container
+  #     if: always()
+  #     run: |
+  #       docker stop pentest-target
+  #       docker rm pentest-target
 
-    - name: Remove Docker network
-      if: always()
-      run: docker network rm zapnet
+  #   - name: Remove Docker network
+  #     if: always()
+  #     run: docker network rm zapnet
     
   risk-evalutaion:
     runs-on: ubuntu-latest
@@ -262,6 +262,8 @@ jobs:
         MEDIUM=0
         LOW=0
         acceptable=1
+
+        ls -al
 
         echo ""
         echo "---------------------------------------"
