@@ -30,7 +30,7 @@ jobs:
     - name: Upload python artifact
       uses: actions/upload-artifact@v4
       with:
-        name: python
+        name: pythonWhite
         path: zap_report_cleaner.py
 
   Static-Code-Analysis:
@@ -294,7 +294,7 @@ jobs:
     - name: Get python cleaner 
       uses: actions/download-artifact@v4
       with:
-        name: python
+        name: pythonWhite
 
     - name: Set up Python
       uses: actions/setup-python@v4
