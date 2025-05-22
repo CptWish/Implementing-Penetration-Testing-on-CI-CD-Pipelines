@@ -224,6 +224,7 @@ jobs:
   risk-evalutaion:
     runs-on: ubuntu-latest
     # needs: post-deployment-pentesting
+    needs: build-test
     if: success()
 
     steps:
