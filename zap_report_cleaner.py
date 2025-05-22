@@ -126,7 +126,7 @@ def dedupe_zap(input_path, output_path, summary_path=None, details_path=None, re
 
             # Write grand total at the end
             f.write(f"## 🧮 Overall Total Risk Score: {round(grand_total_score, 2)}\n")
-            totalScore = {round(grand_total_score, 2)}
+            totalScore = round(grand_total_score, 2)
 
     print(f"📄 Grouped URI report with grand total saved to: {details_path}")
 
