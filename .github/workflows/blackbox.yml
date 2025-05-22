@@ -219,38 +219,38 @@ jobs:
     if: success()
 
     steps:
-    - name: Get ZAP full results from post-deployment-pentesting job
-      uses: actions/download-artifact@v4
-      with:
-        name: zap-full-black
+    # - name: Get ZAP full results from post-deployment-pentesting job
+    #   uses: actions/download-artifact@v4
+    #   with:
+    #     name: zap-full-black
 
-    - name: Get ZAP API results from post-deployment-pentesting job
-      uses: actions/download-artifact@v4
-      with:
-        name: zap-api-black
+    # - name: Get ZAP API results from post-deployment-pentesting job
+    #   uses: actions/download-artifact@v4
+    #   with:
+    #     name: zap-api-black
 
-    - name: Get Nuclei results from post-deployment-pentesting job
-      uses: actions/download-artifact@v4
-      with:
-        name: nucleiBlack
+    # - name: Get Nuclei results from post-deployment-pentesting job
+    #   uses: actions/download-artifact@v4
+    #   with:
+    #     name: nucleiBlack
 
-    - name: Get Nikto results
-      uses: actions/download-artifact@v4
-      with:
-        name: niktoBlack
+    # - name: Get Nikto results
+    #   uses: actions/download-artifact@v4
+    #   with:
+    #     name: niktoBlack
 
-    - name: Move artifacts to scan-reports directory
-      run: |
-        mkdir scan-reports
-        mv nuclei.txt scan-reports/
-        mkdir zap-reports
-        mv zap-api-report.json zap-reports/
-        mv zap-full-report.json zap-reports/
-        mv nikto.txt scan-reports/
-        touch scoreZapFull.txt
-        touch scoreZapAPI.txt
-        chmod 777 zap-reports
-        touch zap-reports/zap-full-report-modified.json
+    # - name: Move artifacts to scan-reports directory
+    #   run: |
+    #     mkdir scan-reports
+    #     mv nuclei.txt scan-reports/
+    #     mkdir zap-reports
+    #     mv zap-api-report.json zap-reports/
+    #     mv zap-full-report.json zap-reports/
+    #     mv nikto.txt scan-reports/
+    #     touch scoreZapFull.txt
+    #     touch scoreZapAPI.txt
+    #     chmod 777 zap-reports
+    #     touch zap-reports/zap-full-report-modified.json
 
 
     - name: Evaluate vulnerabilities
