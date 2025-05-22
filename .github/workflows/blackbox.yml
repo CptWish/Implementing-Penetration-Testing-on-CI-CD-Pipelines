@@ -26,12 +26,13 @@ jobs:
       run: |
         cd webApp
         pytest
+        ls -al
 
     - name: Upload python artifact
       uses: actions/upload-artifact@v4
       with:
         name: python
-        path: ../zap_report_cleaner.py
+        path: zap_report_cleaner.py
       
 
     
