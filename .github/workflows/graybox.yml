@@ -26,6 +26,12 @@ jobs:
       run: |
         cd webApp
         pytest
+    
+    - name: Upload python artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: python
+        path: zap_report_cleaner.py
   
   
   post-deployment-pentesting:
@@ -230,6 +236,11 @@ jobs:
         chmod 777 zap-reports
         touch zap-reports/zap-full-report-modified.json
 
+    - name: Get python cleaner 
+      uses: actions/download-artifact@v4
+      with:
+        name: python
+
 
     - name: Evaluate vulnerabilities
       run: |
@@ -246,7 +257,7 @@ jobs:
         echo "---------------------------------------"
         echo "📊 Parsing ZAP Full Scan..."
         
-        python ../zap_report_cleaner.py zap-reports/zap-full-report.json --output zap-full-clean.json --summary zap-full-summary.md --details full-details.md
+        python zap_report_cleaner.py zap-reports/zap-full-report.json --output zap-full-clean.json --summary zap-full-summary.md --details full-details.md
         
         cat full-details.md
 
@@ -256,7 +267,7 @@ jobs:
         echo "---------------------------------------"
         echo "📊 Parsing ZAP API Scan..."
 
-        python ../zap_report_cleaner.py zap-reports/zap-api-report.json --output zap-api-clean.json --summary zap-api-summary.md --details api-details.md
+        python zap_report_cleaner.py zap-reports/zap-api-report.json --output zap-api-clean.json --summary zap-api-summary.md --details api-details.md
         cat api-details.md  
 
         echo ""
