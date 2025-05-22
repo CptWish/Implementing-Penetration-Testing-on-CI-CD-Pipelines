@@ -255,7 +255,7 @@ jobs:
 
     - name: Evaluate vulnerabilities
       run: |
-        #!/bin/bash
+        
         score=0
         CRITICAL=0
         HIGH=0
@@ -263,6 +263,8 @@ jobs:
         LOW=0
         acceptable=1
 
+        ls -al
+        echo "sonra"
         ls -al ..
         echo "sonra"
         ls -al ../../
